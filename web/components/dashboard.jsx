@@ -197,8 +197,12 @@ function parseContext(text) {
   }
   const list = (str) => [...str.matchAll(/([a-z][\w-]*) (fainted|\d+%)((?:, (?:frz|par|slp|brn|psn|tox|fnt))*)/g)]
     .map((m) => ({ name: m[1], hp: m[2] === "fainted" ? 0 : parseInt(m[2]), status: (m[3].match(/\w+/g) || []).filter((x) => x !== "fnt")[0], fainted: m[2] === "fainted" || m[3].includes("fnt") }))
-  let inActions = false
+  out.tools = []
+  let inActions = false, tool = null
   for (const line of (text || "").split("\n")) {
+    const tm = line.match(/^Tool (\S+) \(written by you\):/)
+    if (tm) { tool = { name: tm[1], text: [] }; out.tools.push(tool); inActions = false; continue }
+    if (tool) { if (line.trim()) { tool.text.push(line.trim()); continue } tool = null; continue }
     if (/^Turn \d+\.?$/.test(line.trim())) continue
     if (line.startsWith("Your active: ")) { out.me = mon(line.slice(13)); continue }
     if (line.startsWith("Opponent active: ")) { out.opp = mon(line.slice(17)); continue }
@@ -242,40 +246,50 @@ function Chips({ items }) {
   )
 }
 
-function AgentView({ t }) {
+function AgentView({ t, cfg }) {
   const c = useMemo(() => parseContext(t?.context), [t])
   if (!t) return null
+  const rules = cfg?.rules || []
   return (
     <div className="grid gap-4">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <MonCard who="Its Pokémon" m={c.me} />
-        <MonCard who="Opponent" m={c.opp} />
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="grid content-start gap-1.5"><Label>Its bench</Label><Chips items={c.bench} /></div>
-        <div className="grid content-start gap-1.5"><Label>Opponents it has seen</Label><Chips items={c.seen} /></div>
+      <div className="grid gap-1.5">
+        <Label>Hints from its tools this turn</Label>
+        {c.tools.length ? c.tools.map((tl) => (
+          <div key={tl.name} className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+            <div className="font-mono text-xs text-muted-foreground">{tl.name} · a tool the coach wrote</div>
+            <p className="mt-1 text-sm">{tl.text.join(" ")}</p>
+          </div>
+        )) : <p className="text-sm text-muted-foreground">No tool fired this turn. Tools only speak up when their situation comes up.</p>}
       </div>
       <div className="grid gap-1.5">
-        <Label>Its options this turn</Label>
-        <div className="grid gap-1">
-          {c.actions.map((a) => {
-            const chosen = a.id === t.action
-            return (
-              <div key={a.id} className={`grid grid-cols-[minmax(0,150px)_1fr_auto] items-center gap-2 rounded-md px-2 py-1 text-sm ${chosen ? "bg-primary/10 ring-1 ring-primary/40" : ""}`}>
-                <span className={`truncate font-mono ${chosen ? "font-semibold" : ""}`}>{a.id.replace(/^(move|switch):/, (m) => (m === "switch:" ? "↔ " : ""))}</span>
-                <span className="truncate text-xs text-muted-foreground">{a.desc.replace(/^\(|\)$/g, "")}</span>
-                {chosen ? <Badge>chose</Badge> : <span />}
-              </div>
-            )
-          })}
-        </div>
+        <Label>Rules it was playing with · {rules.length}</Label>
+        {rules.length ? (
+          <ul className="grid list-disc gap-1 pl-4 text-sm text-muted-foreground">{rules.map((r) => <li key={r}>{r}</li>)}</ul>
+        ) : <p className="text-sm text-muted-foreground">None: this is the starting version.</p>}
       </div>
-      {c.other.length > 0 && (
-        <div className="grid gap-1.5"><Label>Also in its prompt</Label><pre className="overflow-auto rounded-md bg-muted p-2 font-mono text-xs whitespace-pre-wrap">{c.other.join("\n")}</pre></div>
-      )}
-      <details>
-        <summary className="cursor-pointer text-xs text-muted-foreground">Exact text it received</summary>
-        <pre className="mt-2 max-h-[240px] overflow-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap">{t.context}</pre>
+      <details className="rounded-lg border p-3">
+        <summary className="cursor-pointer text-sm">
+          The board: <span className="capitalize">{c.me?.name}</span> {c.me?.hp}% vs <span className="capitalize">{c.opp?.name}</span> {c.opp?.hp}% · {c.actions.length} options
+        </summary>
+        <div className="mt-3 grid gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <MonCard who="Its Pokémon" m={c.me} />
+            <MonCard who="Opponent" m={c.opp} />
+          </div>
+          <div className="grid gap-1">
+            {c.actions.map((a) => {
+              const chosen = a.id === t.action
+              return (
+                <div key={a.id} className={`grid grid-cols-[minmax(0,150px)_1fr_auto] items-center gap-2 rounded-md px-2 py-1 text-sm ${chosen ? "bg-primary/10 ring-1 ring-primary/40" : ""}`}>
+                  <span className={`truncate font-mono ${chosen ? "font-semibold" : ""}`}>{a.id.replace(/^(move|switch):/, (m) => (m === "switch:" ? "↔ " : ""))}</span>
+                  <span className="truncate text-xs text-muted-foreground">{a.desc.replace(/^\(|\)$/g, "")}</span>
+                  {chosen ? <Badge>chose</Badge> : <span />}
+                </div>
+              )
+            })}
+          </div>
+          <pre className="max-h-[200px] overflow-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap">{t.context}</pre>
+        </div>
       </details>
     </div>
   )
@@ -283,13 +297,15 @@ function AgentView({ t }) {
 
 /* ---------------- Live ---------------- */
 
-function Live({ battle }) {
+function Live({ battle, versions }) {
   const turns = battle?.turns || []
   const [sel, setSel] = useState(null)
   const frame = useRef(null)
   const lastViewerTurn = useRef(0)
   const rows = useRef({})
   const t = turns[sel ?? Math.max(0, turns.length - 1)]
+  const cfg = (versions || []).find((v) => v._id === battle?.version)
+  const hinted = useMemo(() => new Set(turns.filter((x) => /\nTool \S+ \(written by you\):/.test("\n" + (x.context || ""))).map((x) => x.turn)), [turns])
 
   // Keep the reasoning panel in step with the Showdown viewer: when the viewer reaches turn N,
   // select the player's decision for turn N. (The replay is served from our origin, so we can read it.)
@@ -342,13 +358,14 @@ function Live({ battle }) {
       <div className="grid min-w-0 content-start gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>What the player sees · turn {t?.turn}</CardTitle>
-            <CardDescription>Its reason, then the exact situation it was given. Follows the viewer as it plays.</CardDescription>
+            <CardTitle>Why it chose · turn {t?.turn}</CardTitle>
+            <CardDescription>Its reason, the hints its tools gave, and the rules it learned. Follows the viewer as it plays.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             <p className="text-lg">“{t?.reason}”</p>
+            <p className="font-mono text-sm">→ chose {(t?.action || "").replace(/^(move|switch):/, (m) => (m === "switch:" ? "switch to " : ""))}</p>
             <Separator />
-            <AgentView t={t} />
+            <AgentView t={t} cfg={cfg} />
           </CardContent>
         </Card>
         <Card>
@@ -366,6 +383,7 @@ function Live({ battle }) {
                     <span>
                       <b className="font-medium">{(x.action || "").replace(/^(move|switch):/, "")}</b>
                       <span className="text-muted-foreground"> · {x.me} {x.me_hp}% vs {x.opp} {x.opp_hp}%</span>
+                      {hinted.has(x.turn) && <Badge variant="outline" className="ml-2">tool hint</Badge>}
                     </span>
                   </button>
                 ))}
@@ -697,7 +715,7 @@ export default function Dashboard() {
         </TabsList>
         {!data ? <p className="py-10 text-muted-foreground">Loading…</p> : <>
           {tab === "story" && <TabsContent value="story"><Story ladder={stats?.ladder} /></TabsContent>}
-          {tab === "live" && <TabsContent value="live" className="pt-4"><Live battle={live?.last_battle} /></TabsContent>}
+          {tab === "live" && <TabsContent value="live" className="pt-4"><Live battle={live?.last_battle} versions={live?.versions} /></TabsContent>}
           {tab === "harness" && <TabsContent value="harness" className="pt-4"><Harness key={run} detail={detail} /></TabsContent>}
           {tab === "effects" && <TabsContent value="effects" className="pt-4"><Effects discoveries={stats?.discoveries} run={run} /></TabsContent>}
           {tab === "atlas" && <TabsContent value="atlas" className="pt-4"><Atlas atlas={stats?.atlas} feed={data?.feed} search={live?.last_search} pipelines={stats?.pipelines} /></TabsContent>}
