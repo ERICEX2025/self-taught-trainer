@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -152,7 +152,37 @@ function Story({ ladder }) {
 function Live({ battle }) {
   const turns = battle?.turns || []
   const [sel, setSel] = useState(null)
+  const frame = useRef(null)
+  const lastViewerTurn = useRef(0)
+  const rows = useRef({})
   const t = turns[sel ?? Math.max(0, turns.length - 1)]
+
+  // Keep the reasoning panel in step with the Showdown viewer: when the viewer reaches turn N,
+  // select the player's decision for turn N. (The replay is served from our origin, so we can read it.)
+  useEffect(() => {
+    const id = setInterval(() => {
+      const vt = frame.current?.contentWindow?.Replays?.battle?.turn
+      if (!vt || vt === lastViewerTurn.current) return
+      lastViewerTurn.current = vt
+      const i = turns.findIndex((x) => x.turn === vt)
+      if (i >= 0) setSel(i)
+    }, 250)
+    return () => clearInterval(id)
+  }, [turns])
+
+  useEffect(() => {
+    if (sel != null) rows.current[sel]?.scrollIntoView({ block: "nearest" })
+  }, [sel])
+
+  // Clicking a turn in the list moves the viewer to that turn.
+  function pick(i) {
+    setSel(i)
+    const b = frame.current?.contentWindow?.Replays?.battle
+    if (b?.seekTurn) {
+      lastViewerTurn.current = turns[i].turn
+      try { b.seekTurn(turns[i].turn) } catch {}
+    }
+  }
   if (!battle) return <p className="text-muted-foreground">No battle yet.</p>
   const replay = battle.replay ? `/api/replay?file=${encodeURIComponent(battle.replay.split("/").pop())}` : null
   return (
@@ -166,7 +196,7 @@ function Live({ battle }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {replay ? <iframe src={replay} title="Pokémon Showdown replay" className="h-[620px] w-full rounded-md border bg-white" />
+          {replay ? <iframe ref={frame} src={replay} title="Pokémon Showdown replay" className="h-[620px] w-full rounded-md border bg-white" />
             : <p className="text-muted-foreground">No replay saved for this battle.</p>}
         </CardContent>
       </Card>
@@ -174,7 +204,7 @@ function Live({ battle }) {
         <Card>
           <CardHeader>
             <CardTitle>The player's mind · turn {t?.turn}</CardTitle>
-            <CardDescription>Why it chose, and what it saw</CardDescription>
+            <CardDescription>Follows the viewer: press Play or Next turn and this updates</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             <p className="text-lg">“{t?.reason}”</p>
@@ -188,13 +218,13 @@ function Live({ battle }) {
         <Card>
           <CardHeader>
             <CardTitle>Every turn</CardTitle>
-            <CardDescription>Click a turn to read the player's reason</CardDescription>
+            <CardDescription>Click a turn to jump the viewer there</CardDescription>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[330px] pr-3">
               <div className="grid gap-1">
                 {turns.map((x, i) => (
-                  <button key={i} onClick={() => setSel(i)}
+                  <button key={i} ref={(el) => { rows.current[i] = el }} onClick={() => pick(i)}
                     className={`grid grid-cols-[44px_1fr] gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted ${t === x ? "bg-muted" : ""}`}>
                     <span className="font-mono text-muted-foreground">T{x.turn}</span>
                     <span>
