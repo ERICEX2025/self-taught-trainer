@@ -409,6 +409,35 @@ function KeepRule() {
   )
 }
 
+function HarnessDiff({ a, b }) {
+  if (!a || !b) return null
+  const lines = []
+  const ar = a.rules || [], br = b.rules || []
+  ar.filter((r) => !br.includes(r)).forEach((r) => lines.push(["-", "rule", r]))
+  br.filter((r) => !ar.includes(r)).forEach((r) => lines.push(["+", "rule", r]))
+  const at = Object.fromEntries((a.custom_tools || []).map((x) => [x.name, x])), bt = Object.fromEntries((b.custom_tools || []).map((x) => [x.name, x]))
+  Object.keys(at).filter((n) => !bt[n]).forEach((n) => lines.push(["-", "tool", `${n} · ${at[n].description}`]))
+  Object.keys(bt).filter((n) => !at[n]).forEach((n) => lines.push(["+", "tool", `${n} · ${bt[n].description}`]))
+  Object.keys(bt).filter((n) => at[n] && at[n].code !== bt[n].code).forEach((n) => lines.push(["~", "tool", `${n} · code revised`]))
+  if (a.system_prompt !== b.system_prompt) { lines.push(["-", "prompt", a.system_prompt]); lines.push(["+", "prompt", b.system_prompt]) }
+  if (JSON.stringify(a.context) !== JSON.stringify(b.context)) {
+    lines.push(["-", "context", `sees last ${a.context?.history_turns ?? 0} moves`]); lines.push(["+", "context", `sees last ${b.context?.history_turns ?? 0} moves`])
+  }
+  const tone = { "+": "bg-emerald-500/10 text-emerald-900 dark:text-emerald-200", "-": "bg-destructive/10 text-destructive", "~": "bg-amber-500/10" }
+  return (
+    <Card size="sm">
+      <CardHeader><CardDescription className="font-mono">diff {short(a._id)} → {short(b._id)}</CardDescription></CardHeader>
+      <CardContent className="grid gap-1 font-mono text-sm">
+        {lines.length ? lines.map(([sign, kind, text], i) => (
+          <div key={i} className={`grid grid-cols-[16px_64px_1fr] gap-2 rounded px-2 py-1 ${tone[sign]}`}>
+            <span>{sign}</span><span className="opacity-70">{kind}</span><span className="whitespace-normal">{text}</span>
+          </div>
+        )) : <p className="text-muted-foreground">No change.</p>}
+      </CardContent>
+    </Card>
+  )
+}
+
 /* ---------------- Harness ---------------- */
 
 function Harness({ detail }) {
@@ -430,11 +459,9 @@ function Harness({ detail }) {
         ))}
         <span className="text-sm text-muted-foreground">kept versions · {tried} other ideas were tested and rejected</span>
       </div>
-      <p className="text-muted-foreground">
-        {v.parent ? <>The coach {describe(v.change)}. {v.change?.rationale && <>Its reason: {v.change.rationale}</>}</>
-          : v.started_from ? <>Starting point: a copy of <b className="text-foreground">{v.started_from}</b>, the best version from an earlier run.</>
-          : "Starting point: one generic sentence, no rules, no tools, nothing about Pokémon strategy."}
-      </p>
+      {v.parent ? <HarnessDiff a={detail.versions.find((x) => x._id === v.parent)} b={v} />
+        : <p className="text-muted-foreground">{v.started_from ? <>Starting point: a copy of <b className="text-foreground">{v.started_from}</b>, the best version from an earlier run.</>
+          : "Starting point: one generic sentence, no rules, no tools, nothing about Pokémon strategy."}</p>}
       <div className="grid gap-3 md:grid-cols-2">
         <Card>
           <CardHeader><CardTitle>Instructions</CardTitle><CardDescription>editable by the coach</CardDescription></CardHeader>
