@@ -45,7 +45,15 @@ def snapshot(st: Store) -> dict:
                      "change": c["change"], "examples": r["result"].get("examples") or {},
                      "first": {"best": r["result"].get("best_first"), "top": r["result"].get("top_first")},
                      "retest": rt, "n_losses": r["saw"].get("n_losses"), "n_battles": r["saw"].get("n_battles")})
-    return {"at": time.time(), "ladder": ladder, "runs": runs, "atlas": st.stats(), "discoveries": disc,
+    detail = {}
+    for run in sorted({v.get("run") for v in st.versions.find({}, {"run": 1}) if v.get("run")}):
+        vs = list(st.versions.find({"run": run}, {"guardrails": 0}).sort("created", 1))
+        refs = list(st.reflections.find({"run": run}, {"_id": 0}).sort("generation", 1))
+        for r in refs:
+            r["saw"].pop("prompt", None)
+        kept = [v for v in vs if v.get("status") in ("baseline", "promoted")]
+        detail[run] = {"versions": vs, "reflections": refs, "best": kept[-1]["_id"] if kept else None}
+    return {"at": time.time(), "ladder": ladder, "runs": runs, "atlas": st.stats(), "discoveries": disc, "run_detail": detail,
             "pipelines": {"ladder_by_family": LADDER_BY_FAMILY, "run_by_version": RUN_BY_VERSION}}
 
 

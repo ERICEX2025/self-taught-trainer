@@ -145,7 +145,7 @@ svg text { font-family: "IBM Plex Mono", monospace; }
 <div class="top">
   <div class="brand"><h1>Self-Taught Trainer</h1><div id="sub">Gen 1 OU · fixed team · connecting…</div></div>
   <div class="pipe" id="pipe"></div>
-  <div class="stat"><span>run</span><b id="run">–</b></div>
+  <div class="stat"><span>run</span><select id="runpick" aria-label="Choose a run" style="font:400 22px 'Instrument Serif',Georgia,serif;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:0 6px"></select></div>
   <div class="stat"><span>generation</span><b id="gen">–</b></div>
   <div class="stat"><span>best version</span><b id="best">–</b></div>
 </div>
@@ -276,7 +276,6 @@ svg text { font-family: "IBM Plex Mono", monospace; }
     document.getElementById("pipe").innerHTML = STAGES.map(function (st, i) {
       return (i ? '<span class="arrow">→</span>' : "") + '<span class="stage' + (L.phase === st[0] ? " on" : "") + '">' + st[1] + "</span>";
     }).join("") + (L.phase === "finished" ? ' <span class="stage on">DONE</span>' : "");
-    document.getElementById("run").textContent = L.run || "–";
     document.getElementById("gen").textContent = L.generation != null ? L.generation : "–";
     var chain = lineage(L), best = chain[chain.length - 1];
     document.getElementById("best").textContent = best ? best._id.split(".").pop() + " · " + pct(best.score) : "–";
@@ -448,10 +447,32 @@ svg text { font-family: "IBM Plex Mono", monospace; }
     }).join("");
   }
 
+  var picked = null;
+  document.getElementById("runpick").addEventListener("change", function () { picked = this.value; draw(); });
+  function view() {
+    var L = S.live || {}, det = (S.stats && S.stats.run_detail) || {};
+    var run = picked || L.run || Object.keys(det).slice(-1)[0];
+    var d = det[run];
+    if (!d) return L;
+    var isLive = L.run === run;
+    return { run: run, versions: d.versions, reflections: d.reflections, best: d.best,
+             phase: isLive ? L.phase : "finished", generation: isLive ? L.generation : d.reflections.length,
+             models: L.models, battles: L.battles, progress: isLive ? L.progress : {}, last_search: L.last_search };
+  }
+  function draw() {
+    var det = (S.stats && S.stats.run_detail) || {}, sel = document.getElementById("runpick");
+    var runs = Object.keys(det).filter(function (r) { return r !== "test"; });
+    if (S.live && S.live.run && runs.indexOf(S.live.run) < 0) runs.push(S.live.run);
+    if (sel.options.length !== runs.length) sel.innerHTML = runs.map(function (r) { return '<option value="' + r + '">' + r + "</option>"; }).join("");
+    var V = view(); if (!V || !V.versions) return;
+    sel.value = V.run;
+    renderTop(V); renderHarness(V); renderEvolution(V);
+  }
   function tick() {
     Promise.all([getJSON("live.json"), getJSON("stats.json"), getJSON("feed.json")]).then(function (r) {
-      if (r[0]) { S.live = r[0]; renderTop(S.live); renderHarness(S.live); renderEvolution(S.live); if (S.live.last_battle && S.live.last_battle.tag !== shownTag && (!shownTag || Date.now() - shownAt > 45000)) showBattle(S.live.last_battle); }
+      if (r[0]) { S.live = r[0]; if (S.live.last_battle && S.live.last_battle.tag !== shownTag && (!shownTag || Date.now() - shownAt > 45000)) showBattle(S.live.last_battle); }
       if (r[1]) { S.stats = r[1]; renderLadder(S.stats); renderDiscoveries(S.stats); }
+      draw();
       renderAtlas(S.stats, S.live);
       if (r[2]) renderFeed(r[2]);
     }).finally(function () { setTimeout(tick, 2500); });
