@@ -36,7 +36,10 @@ class LLM:
                             extra["extra_body"] = {"reasoning": {"effort": effort}}
                         else:
                             extra["reasoning_effort"] = effort
-                        max_tokens = max(max_tokens, 2000)  # thinking tokens count toward the limit
+                        # Thinking tokens count toward the cap, but the player runs with reasoning off and answers in
+                        # ~30 tokens. OpenAI's rate limiter reserves the requested cap, so only the coach gets a big one.
+                        if model != self.play_model:
+                            max_tokens = max(max_tokens, 2000)
                     name = f"openai/{model}" if self.provider == "openrouter" and "/" not in model else model
                     r = await self.client.chat.completions.create(
                         model=name, max_completion_tokens=max_tokens, **extra,
