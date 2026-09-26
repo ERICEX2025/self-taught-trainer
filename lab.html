@@ -384,8 +384,11 @@ svg text { font-family: "IBM Plex Mono", monospace; }
       var verdict = !res ? '<span class="tag wait">testing…</span>' :
         res.retest ? "Re-test: best " + pct(res.retest.best) + " vs " + esc(top.split(".").pop()) + " " + pct(res.retest.top) + " · averages " + pct(res.retest.best_avg) + " vs " + pct(res.retest.top_avg) + " → " + (res.kept ? '<span class="tag kept">KEPT</span>' : '<span class="tag rb">rejected</span>')
           : "No candidate beat the fresh best (" + pct(res.best_first) + ") · nothing kept";
+      var scr = (r.analysis_scripts || []);
+      var inv = scr.length ? '<details class="code"><summary>How the coach investigated: ' + scr.length + " analysis scripts it wrote and ran (" + esc(r.coach || "") + ")</summary>" +
+        scr.map(function (x) { return '<div class="small" style="margin-top:6px"><b>' + esc(x.name) + '</b></div><pre class="code">' + esc(x.code) + "</pre>"; }).join("") + "</details>" : "";
       return '<div class="gen"><div class="h"><span>Generation ' + r.generation + '</span><span class="small">best ' + esc(r.parent.split(".").pop()) + " scored " + pct(res && res.best_first) + " this round · " + r.saw.n_losses + " losses studied</span></div>" +
-        '<div class="cands">' + (cands || '<div class="empty">no usable proposals this round</div>') + '</div><div class="verdict">' + verdict + "</div></div>";
+        inv + '<div class="cands">' + (cands || '<div class="empty">no usable proposals this round</div>') + '</div><div class="verdict">' + verdict + "</div></div>";
     }).join("") || '<div class="empty">The coach hasn\'t run yet.</div>';
   }
 
