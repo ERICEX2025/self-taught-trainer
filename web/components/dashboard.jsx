@@ -267,6 +267,10 @@ function AgentView({ t, cfg }) {
           <ul className="grid list-disc gap-1 pl-4 text-sm text-muted-foreground">{rules.map((r) => <li key={r}>{r}</li>)}</ul>
         ) : <p className="text-sm text-muted-foreground">None: this is the starting version.</p>}
       </div>
+      <details>
+        <summary className="cursor-pointer text-sm text-muted-foreground">Exact text it received this turn</summary>
+        <pre className="mt-2 max-h-[260px] overflow-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap">{t.context}</pre>
+      </details>
     </div>
   )
 }
