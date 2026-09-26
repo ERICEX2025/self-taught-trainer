@@ -66,12 +66,19 @@ def evidence_for(docs: list[dict]) -> str:
         return ""
 
 
+BEST: dict = {}  # the current best version, used as the self-play opponent
+LADDER_TEXT = ""
+
+
 async def play(cfg, llm, n, opponent):
     """opponent can be one bot, or several joined with '+': battles are split evenly and the
     score is the overall win rate, so a change must help against all of them to be kept."""
     opps = opponent.split("+")
     per = max(1, n // len(opps))
-    parts = await asyncio.gather(*[evaluate(cfg, llm, per, o, tools=load_tools(cfg), on_finish=on_finish) for o in opps])
+    parts = await asyncio.gather(*[evaluate(cfg, llm, per, o, tools=load_tools(cfg), on_finish=on_finish,
+                                            concurrency=12, opponent_cfg=BEST.get("cfg"),
+                                            opponent_tools=load_tools(BEST["cfg"]) if o == "self" else None)
+                                   for o in opps])
     docs = [d for _, ds, _ in parts for d in ds]
     return sum(d["won"] for d in docs) / max(1, len(docs)), docs, parts[0][2]
 
@@ -86,6 +93,14 @@ async def main(a):
 
     best = v1()
     best.update({"_id": f"{run}.v1", "run": run})
+    BEST["cfg"] = best
+    global LADDER_TEXT
+    if a.ladder_evidence:
+        lost = list(store.battles.find({"run": {"$regex": "^ladder:"}, "won": False, "log.3": {"$exists": True}}).sort("at", -1).limit(8))
+        LADDER_TEXT = ("Losses against the PokeAgent benchmark's RL agents (strong opponents we never train against; "
+                       "look for mistakes that strong opponents punish):\n\n" + "\n\n".join(
+                           f"vs {d.get('opponent')}: " + coach.game_summary(d, 10) for d in lost))
+        print(f"ladder evidence: {len(lost)} losses vs benchmark agents", flush=True)
     counter = 1
     tried: list[dict] = []
     reflections: list[dict] = []
@@ -105,7 +120,7 @@ async def main(a):
         loss_text = " ".join(coach.game_summary(d, 6) for d in docs if not d["won"])[:3000]
         lessons = store.search_lessons(loss_text, k=3) if store.lessons.count_documents({"archived": False}) else []
         write_live(last_search=store.last_search)
-        ev = evidence_for(docs)
+        ev = "\n\n".join(x for x in (evidence_for(docs), LADDER_TEXT) if x)
         cands, scripts = [], []
         if a.coach == "codex":
             from . import coach_codex
@@ -125,7 +140,7 @@ async def main(a):
                "analysis_scripts": scripts,
                "candidates": [], "result": None}
         versions_to_test = []
-        for c in cands:
+        for c in cands[:a.candidates]:
             counter += 1
             cand, err = coach.apply_change(best, c, f"{run}.v{counter}")
             entry = {"id": f"{run}.v{counter}", "change": c, "error": err}
@@ -189,6 +204,7 @@ async def main(a):
                          "retest": retest, "kept": keep}
         store.save_reflection(ref)
         if keep:
+            BEST["cfg"] = top
             ref["result"]["examples"] = await coach.explain_keep(llm, prompt, top["change"])
             store.save_reflection(ref)
             if top["change"].get("lesson"):
@@ -213,4 +229,6 @@ if __name__ == "__main__":
     ap.add_argument("--margin", type=float, default=0.05)
     ap.add_argument("--concurrency", type=int, default=24)
     ap.add_argument("--coach", choices=["api", "codex"], default="api")
+    ap.add_argument("--candidates", type=int, default=4, help="max candidates tested per generation")
+    ap.add_argument("--ladder-evidence", action="store_true", help="show the coach recent losses from the PokeAgent ladder")
     asyncio.run(main(ap.parse_args()))
