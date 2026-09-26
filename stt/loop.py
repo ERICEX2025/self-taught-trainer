@@ -54,6 +54,18 @@ def on_finish(player, battle):
     write_live()
 
 
+def evidence_for(docs: list[dict]) -> str:
+    """Hook for the partner's evidence module (stt/evidence.py with build(docs) -> str). Empty if absent."""
+    try:
+        from . import evidence
+        return evidence.build(docs) or ""
+    except ImportError:
+        return ""
+    except Exception as e:  # never let evidence code crash the loop
+        print(f"  evidence module error: {type(e).__name__}: {e}", flush=True)
+        return ""
+
+
 async def play(cfg, llm, n, opponent):
     return await evaluate(cfg, llm, n, opponent, tools=load_tools(cfg), on_finish=on_finish)
 
@@ -86,12 +98,13 @@ async def main(a):
         write_live(phase="coach", generation=g, progress={})
         loss_text = " ".join(coach.game_summary(d, 6) for d in docs if not d["won"])[:3000]
         lessons = store.search_lessons(loss_text, k=3) if store.lessons.count_documents({"archived": False}) else []
-        cands, prompt = await coach.propose(llm, best, docs, tried, lessons)
+        cands, prompt, raw = await coach.propose(llm, best, docs, tried, lessons, evidence=evidence_for(docs))
         ref = {"run": run, "generation": g, "parent": best["_id"], "at": time.time(),
                "saw": {"harness": {k: best[k] for k in EDITABLE}, "n_battles": len(docs),
                        "n_losses": sum(not d["won"] for d in docs), "tried": list(tried),
                        "lessons": [{"text": h["text"], "score": h.get("score")} for h in lessons],
                        "prompt": prompt},
+               "raw_reply": raw[-4000:] if not cands else None,
                "candidates": [], "result": None}
         versions_to_test = []
         for c in cands:

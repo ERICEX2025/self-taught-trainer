@@ -41,10 +41,11 @@ Respond with JSON only:
 
 def game_summary(doc: dict, last: int = 12) -> str:
     turns = doc["log"][-last:]
+    outcome = "WON" if doc["won"] else "LOST"
     lines = [f"  t{t['turn']} {t['me']}({t['me_hp']}%) vs {t['opp']}({t['opp_hp']}%"
              f"{', ' + t['opp_status'] if t.get('opp_status') else ''}) -> {t['action']}  | reason: {t['reason']}"
              for t in turns]
-    return f"LOST in {doc['turns']} turns. Last {len(turns)} turns:\n" + "\n".join(lines)
+    return f"{outcome} in {doc['turns']} turns. Last {len(turns)} turns:\n" + "\n".join(lines)
 
 
 def move_stats(docs: list[dict], top: int = 10) -> str:
@@ -66,8 +67,10 @@ def move_stats(docs: list[dict], top: int = 10) -> str:
     return "\n".join(r for _, r in rows[:top])
 
 
-def build_prompt(cfg: dict, docs: list[dict], tried: list[dict], lessons: list[dict], n_games: int = 6) -> str:
+def build_prompt(cfg: dict, docs: list[dict], tried: list[dict], lessons: list[dict], n_games: int = 6,
+                 n_wins: int = 3, evidence: str = "") -> str:
     losses = [d for d in docs if not d["won"]][:n_games]
+    wins = [d for d in docs if d["won"]][:n_wins]
     view = {k: cfg[k] for k in EDITABLE}
     tried_txt = "\n".join(f"- {t.get('kind')}: {json.dumps(t.get('value'))[:160]}" for t in tried) or "- nothing yet"
     lesson_txt = "\n".join(f"- {h['text']}" for h in lessons) or "- none yet"
@@ -77,7 +80,10 @@ def build_prompt(cfg: dict, docs: list[dict], tried: list[dict], lessons: list[d
             f"Already tested and did NOT help (do not propose these again):\n{tried_txt}\n\n"
             f"Lessons from earlier rounds (found by vector search):\n{lesson_txt}\n\n"
             f"Move statistics from these battles (correlations, not causes):\n{move_stats(docs) or '  (too few battles)'}\n\n"
-            "Losing games, with the player's own reasons:\n" + "\n\n".join(game_summary(d) for d in losses))
+            + (f"Evidence about decisions (what happened after each kind of choice):\n{evidence}\n\n" if evidence else "")
+            + "Losing games, with the player's own reasons:\n" + "\n\n".join(game_summary(d) for d in losses)
+            + ("\n\nWinning games, for contrast (what did these do that the losses didn't?):\n"
+               + "\n\n".join(game_summary(d) for d in wins) if wins else ""))
 
 
 def parse_candidates(text: str) -> list[dict]:
@@ -89,10 +95,16 @@ def parse_candidates(text: str) -> list[dict]:
         return []
 
 
-async def propose(llm, cfg, docs, tried, lessons) -> tuple[list[dict], str]:
-    prompt = build_prompt(cfg, docs, tried, lessons)
-    text = await llm.complete(COACH_SYSTEM, prompt, llm.coach_model, max_tokens=6000)
-    return parse_candidates(text), prompt
+async def propose(llm, cfg, docs, tried, lessons, evidence: str = "") -> tuple[list[dict], str, str]:
+    """Returns (candidates, prompt, raw reply). Retries once if the reply can't be read."""
+    prompt = build_prompt(cfg, docs, tried, lessons, evidence=evidence)
+    text = ""
+    for _ in range(2):
+        text = await llm.complete(COACH_SYSTEM, prompt, llm.coach_model, max_tokens=8000)
+        cands = parse_candidates(text)
+        if cands:
+            return cands, prompt, text
+    return [], prompt, text
 
 
 def apply_change(cfg: dict, change: dict, new_id: str) -> tuple[dict | None, str | None]:
