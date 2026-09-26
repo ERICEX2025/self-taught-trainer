@@ -409,35 +409,6 @@ function KeepRule() {
   )
 }
 
-function HarnessDiff({ a, b }) {
-  if (!a || !b) return null
-  const lines = []
-  const ar = a.rules || [], br = b.rules || []
-  ar.filter((r) => !br.includes(r)).forEach((r) => lines.push(["-", "rule", r]))
-  br.filter((r) => !ar.includes(r)).forEach((r) => lines.push(["+", "rule", r]))
-  const at = Object.fromEntries((a.custom_tools || []).map((x) => [x.name, x])), bt = Object.fromEntries((b.custom_tools || []).map((x) => [x.name, x]))
-  Object.keys(at).filter((n) => !bt[n]).forEach((n) => lines.push(["-", "tool", `${n} · ${at[n].description}`]))
-  Object.keys(bt).filter((n) => !at[n]).forEach((n) => lines.push(["+", "tool", `${n} · ${bt[n].description}`]))
-  Object.keys(bt).filter((n) => at[n] && at[n].code !== bt[n].code).forEach((n) => lines.push(["~", "tool", `${n} · code revised`]))
-  if (a.system_prompt !== b.system_prompt) { lines.push(["-", "prompt", a.system_prompt]); lines.push(["+", "prompt", b.system_prompt]) }
-  if (JSON.stringify(a.context) !== JSON.stringify(b.context)) {
-    lines.push(["-", "context", `sees last ${a.context?.history_turns ?? 0} moves`]); lines.push(["+", "context", `sees last ${b.context?.history_turns ?? 0} moves`])
-  }
-  const tone = { "+": "bg-emerald-500/10 text-emerald-900 dark:text-emerald-200", "-": "bg-destructive/10 text-destructive", "~": "bg-amber-500/10" }
-  return (
-    <Card size="sm">
-      <CardHeader><CardDescription className="font-mono">diff {short(a._id)} → {short(b._id)}</CardDescription></CardHeader>
-      <CardContent className="grid gap-1 font-mono text-sm">
-        {lines.length ? lines.map(([sign, kind, text], i) => (
-          <div key={i} className={`grid grid-cols-[16px_64px_1fr] gap-2 rounded px-2 py-1 ${tone[sign]}`}>
-            <span>{sign}</span><span className="opacity-70">{kind}</span><span className="whitespace-normal">{text}</span>
-          </div>
-        )) : <p className="text-muted-foreground">No change.</p>}
-      </CardContent>
-    </Card>
-  )
-}
-
 /* ---------------- Harness ---------------- */
 
 function Harness({ detail }) {
@@ -446,6 +417,13 @@ function Harness({ detail }) {
   const v = kept.find((x) => x._id === selId) || kept[kept.length - 1]
   if (!v) return <p className="text-muted-foreground">No versions for this run.</p>
   const tried = (detail.versions || []).length - kept.length
+  const par = v.parent ? detail.versions.find((x) => x._id === v.parent) : null
+  const pr = par ? par.rules || [] : v.rules
+  const removedRules = pr.filter((r) => !v.rules.includes(r))
+  const ptools = Object.fromEntries(((par ? par.custom_tools : v.custom_tools) || []).map((x) => [x.name, x]))
+  const removedTools = Object.values(ptools).filter((x) => !(v.custom_tools || []).some((y) => y.name === x.name))
+  const add = "rounded bg-emerald-500/15 px-1.5 py-0.5"
+  const del = "rounded bg-destructive/10 px-1.5 py-0.5 text-muted-foreground line-through"
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -459,13 +437,16 @@ function Harness({ detail }) {
         ))}
         <span className="text-sm text-muted-foreground">kept versions · {tried} other ideas were tested and rejected</span>
       </div>
-      {v.parent ? <HarnessDiff a={detail.versions.find((x) => x._id === v.parent)} b={v} />
-        : <p className="text-muted-foreground">{v.started_from ? <>Starting point: a copy of <b className="text-foreground">{v.started_from}</b>, the best version from an earlier run.</>
+      {!v.parent && <p className="text-muted-foreground">{v.started_from ? <>Starting point: a copy of <b className="text-foreground">{v.started_from}</b>, the best version from an earlier run.</>
           : "Starting point: one generic sentence, no rules, no tools, nothing about Pokémon strategy."}</p>}
+      {v.parent && <p className="text-sm text-muted-foreground">Changes from {short(v.parent)} are marked inside each box: <span className="rounded bg-emerald-500/15 px-1">+ added</span> <span className="rounded bg-destructive/10 px-1 line-through">removed</span></p>}
       <div className="grid gap-3 md:grid-cols-2">
         <Card>
           <CardHeader><CardTitle>Instructions</CardTitle><CardDescription>editable by the coach</CardDescription></CardHeader>
-          <CardContent className="font-mono text-sm">{v.system_prompt}</CardContent>
+          <CardContent className="grid gap-2 font-mono text-sm">
+            {par && par.system_prompt !== v.system_prompt && <div className={del}>{par.system_prompt}</div>}
+            <div className={par && par.system_prompt !== v.system_prompt ? add : ""}>{v.system_prompt}</div>
+          </CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle>Guardrails</CardTitle><CardDescription>locked</CardDescription></CardHeader>
@@ -479,16 +460,21 @@ function Harness({ detail }) {
         <Card>
           <CardHeader><CardTitle>Learned rules</CardTitle><CardDescription>{v.rules.length} rules</CardDescription></CardHeader>
           <CardContent>
-            {v.rules.length ? <ul className="grid list-disc gap-1.5 pl-4 text-sm">{v.rules.map((r) => <li key={r}>{r}</li>)}</ul>
-              : <p className="text-sm text-muted-foreground">None yet.</p>}
+            {v.rules.length || removedRules.length ? (
+              <ul className="grid list-disc gap-1.5 pl-4 text-sm">
+                {v.rules.map((r) => <li key={r}><span className={!pr.includes(r) ? add : ""}>{!pr.includes(r) && "+ "}{r}</span></li>)}
+                {removedRules.map((r) => <li key={"x" + r}><span className={del}>{r}</span></li>)}
+              </ul>
+            ) : <p className="text-sm text-muted-foreground">None yet.</p>}
           </CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle>Tools it wrote</CardTitle><CardDescription>Python, run in a sandbox</CardDescription></CardHeader>
           <CardContent className="grid gap-2">
+            {removedTools.map((tl) => <div key={"x" + tl.name} className={`text-sm ${del}`}><b className="font-mono">{tl.name}</b> · {tl.description}</div>)}
             {(v.custom_tools || []).length ? v.custom_tools.map((tl) => (
               <details key={tl.name} className="text-sm">
-                <summary className="cursor-pointer"><b className="font-mono">{tl.name}</b> · {tl.description}</summary>
+                <summary className="cursor-pointer"><span className={!ptools[tl.name] ? add : ptools[tl.name].code !== tl.code ? "rounded bg-amber-500/15 px-1.5 py-0.5" : ""}>{!ptools[tl.name] && "+ "}<b className="font-mono">{tl.name}</b></span> · {tl.description}{ptools[tl.name] && ptools[tl.name].code !== tl.code && <span className="text-muted-foreground"> (code revised)</span>}</summary>
                 <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-muted p-3 font-mono text-xs">{tl.code}</pre>
               </details>
             )) : <p className="text-sm text-muted-foreground">None yet.</p>}
