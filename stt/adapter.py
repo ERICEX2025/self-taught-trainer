@@ -41,7 +41,13 @@ def describe(battle) -> str:
             f"{p.species} {'fainted' if p.fainted else _hp(p)}{_status(p)}" for p in seen))
     lines.append("Legal actions:")
     for aid, obj in legal_actions(battle):
-        if aid.startswith("move:"):
+        # poke-env gives these commands placeholder stats, not actual move data.
+        if aid == "move:fight":
+            lines.append(f"  {aid}  continue the turn without selecting an attack "
+                         "(asleep, frozen, or partially trapped)")
+        elif aid == "move:recharge":
+            lines.append(f"  {aid}  recharge this turn")
+        elif aid.startswith("move:"):
             acc = 1.0 if obj.accuracy is True else obj.accuracy
             lines.append(f"  {aid}  type {obj.type.name.title()}, power {obj.base_power}, "
                          f"{obj.category.name.lower()}, accuracy {acc}")
