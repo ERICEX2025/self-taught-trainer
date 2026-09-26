@@ -252,17 +252,17 @@ function AgentView({ t, cfg }) {
   const rules = cfg?.rules || []
   const code = Object.fromEntries((cfg?.custom_tools || []).map((x) => [x.name, x]))
   return (
-    <div className="grid gap-3">
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 break-words">
       {c.tools.length ? c.tools.map((tl) => (
-        <div key={tl.name} className="grid gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+        <div key={tl.name} className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
           <div className="text-xs text-muted-foreground">
             Tool <span className="font-mono font-semibold text-foreground">{tl.name}</span> fired and added this to its prompt:
           </div>
           <p className="text-sm font-medium">“{tl.text.join(" ")}”</p>
           {code[tl.name] && (
-            <details className="text-xs">
-              <summary className="cursor-pointer text-muted-foreground">What this tool is · {code[tl.name].description}</summary>
-              <pre className="mt-2 max-h-56 overflow-auto rounded-md bg-background p-2 font-mono">{code[tl.name].code}</pre>
+            <details className="min-w-0 text-xs">
+              <summary className="cursor-pointer text-muted-foreground">See the tool&apos;s code · {code[tl.name].description}</summary>
+              <pre className="mt-2 max-h-56 max-w-full overflow-auto rounded-md bg-background p-2 font-mono">{code[tl.name].code}</pre>
             </details>
           )}
         </div>
@@ -337,18 +337,14 @@ function Live({ battle, versions }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {replay ? <iframe ref={frame} src={replay} title="Pokémon Showdown replay" className="h-[620px] w-full rounded-md border bg-white" />
+          {replay ? <iframe ref={frame} src={replay} title="Pokémon Showdown replay" scrolling="no" className="h-[492px] w-full rounded-md border bg-white" />
             : <p className="text-muted-foreground">No replay saved for this battle.</p>}
-        </CardContent>
-      </Card>
-      <div className="grid min-w-0 content-start gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Every turn</CardTitle>
-            <CardDescription>Click a turn to jump the viewer there</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[260px] pr-3">
+          <div className="mt-4 grid gap-2">
+            <div className="flex items-baseline justify-between gap-2">
+              <Label>Every turn</Label>
+              <span className="text-xs text-muted-foreground">click a turn to jump the viewer there</span>
+            </div>
+            <ScrollArea className="h-[300px] pr-3">
               <div className="grid gap-1">
                 {turns.map((x, i) => (
                   <button key={i} ref={(el) => { rows.current[i] = el }} onClick={() => pick(i)}
@@ -357,20 +353,22 @@ function Live({ battle, versions }) {
                     <span>
                       <b className="font-medium">{(x.action || "").replace(/^(move|switch):/, "")}</b>
                       <span className="text-muted-foreground"> · {x.me} {x.me_hp}% vs {x.opp} {x.opp_hp}%</span>
-                      {hinted.has(x.turn) && <Badge variant="outline" className="ml-2 font-mono">{hinted.get(x.turn).join(", ")}</Badge>}
+                      {hinted.has(x.turn) && <Badge variant="secondary" className="ml-2 font-mono text-[10px]">{hinted.get(x.turn).join(", ")}</Badge>}
                     </span>
                   </button>
                 ))}
               </div>
             </ScrollArea>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
+      <div className="grid min-w-0 content-start gap-4">
         <Card>
           <CardHeader>
             <CardTitle>Why it chose · turn {t?.turn}</CardTitle>
             <CardDescription>Its reason, and the hint a coach-written tool gave it. Follows the viewer as it plays.</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3">
+          <CardContent className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3">
             <p className="text-lg">“{t?.reason}”</p>
             <p className="font-mono text-sm">→ chose {(t?.action || "").replace(/^(move|switch):/, (m) => (m === "switch:" ? "switch to " : ""))}</p>
             <Separator />
