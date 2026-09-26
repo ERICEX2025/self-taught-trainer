@@ -382,36 +382,9 @@ function Live({ battle, versions }) {
   )
 }
 
-/* ---------------- How a change is kept (A/B test) ---------------- */
-
-function KeepRule() {
-  const steps = [
-    ["A vs B", "A is the current best harness. B is A plus one change from the coach. Everything else is identical: same model, same team, same opponents."],
-    ["Round 1", "A and each B play 60 fresh games at the same time. The coach proposes 3–4 changes, so there are 3–4 B's."],
-    ["Round 2", "The best B plays A again, head to head, 60 more games each. The top of 4 is often just lucky, so it must win twice."],
-    ["Decision", "Average both rounds. B is kept only if it beats A by 5 points or more. Otherwise A stays, and the change goes on a “tried, didn't help” list."],
-  ]
-  return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle>How a change is kept: an A/B test</CardTitle>
-        <CardDescription>Games vs the rule bot (Run 1) or half rule bot, half max-power bot (Runs 2–3). Both sides use the same six Pokémon.</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {steps.map(([t, d]) => (
-          <div key={t} className="grid content-start gap-1">
-            <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{t}</div>
-            <p className="text-sm">{d}</p>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  )
-}
-
 /* ---------------- Harness ---------------- */
 
-function Harness({ detail }) {
+function Harness({ detail, discoveries }) {
   const kept = useMemo(() => (detail?.versions || []).filter((v) => ["baseline", "promoted"].includes(v.status)), [detail])
   const [selId, setSelId] = useState(null)
   const v = kept.find((x) => x._id === selId) || kept[kept.length - 1]
@@ -480,6 +453,7 @@ function Harness({ detail }) {
           </CardContent>
         </Card>
       </div>
+      {v.parent && <WhyKept d={(discoveries || []).find((d) => d.version === v._id)} />}
       <Card>
         <CardHeader><CardTitle>Every idea the coach tried</CardTitle><CardDescription>each row is one B, with its first-round win rate; most did not pass</CardDescription></CardHeader>
         <CardContent>
@@ -502,34 +476,16 @@ function Harness({ detail }) {
   )
 }
 
-/* ---------------- Effects ---------------- */
-
-function Effects({ discoveries, run }) {
-  const all = discoveries || []
-  const list = all.filter((d) => d.run === run)
-  const shown = list.length ? list : all
-  if (!shown.length) return <p className="text-muted-foreground">No kept changes yet.</p>
+function WhyKept({ d }) {
+  if (!d) return null
+  const c = d.change || {}, rt = d.retest || {}, ex = d.examples || {}
+  const before = rt.best_avg ?? d.first?.best, after = rt.top_avg ?? d.first?.top
   return (
-    <div className="grid gap-4">
-      <KeepRule />
-      <p className="max-w-prose text-muted-foreground">
-        Every change that passed, with the mistake it was meant to fix and its A/B result.
-        {!list.length && <> (No kept changes in {run}; showing all runs.)</>}
-      </p>
-      {shown.map((d) => {
-        const c = d.change || {}, rt = d.retest || {}, ex = d.examples || {}
-        const before = rt.best_avg ?? d.first?.best, after = rt.top_avg ?? d.first?.top
-        return (
-          <Card key={d.version}>
-            <CardHeader>
-              <CardDescription className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline">{d.run} · gen {d.generation}</Badge>
-                <span className="font-mono">{short(d.parent)} → {short(d.version)}</span>
-              </CardDescription>
-              <CardTitle className="text-lg leading-snug">
-                {c.kind === "write_tool" || c.kind === "edit_tool" ? <>Wrote a tool: <span className="font-mono">{c.value?.name}</span></> : <>“{typeof c.value === "string" ? c.value : describe(c)}”</>}
-              </CardTitle>
-            </CardHeader>
+    <Card>
+      <CardHeader>
+        <CardTitle>Why this change was kept</CardTitle>
+        <CardDescription>The mistake it targeted, and its A/B test: without the change (A) vs with it (B)</CardDescription>
+      </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
               <div className="grid content-start gap-2">
                 <Label>The mistake it fixed</Label>
@@ -548,10 +504,7 @@ function Effects({ discoveries, run }) {
                 <p className="text-xs text-muted-foreground">Average of the first test and the head-to-head re-test, 60 fresh games each. Small samples, so a few points can be luck.</p>
               </div>
             </CardContent>
-          </Card>
-        )
-      })}
-    </div>
+    </Card>
   )
 }
 
@@ -707,14 +660,12 @@ export default function Dashboard() {
           <TabsTrigger value="story">Story</TabsTrigger>
           <TabsTrigger value="live">Live</TabsTrigger>
           <TabsTrigger value="harness">Harness</TabsTrigger>
-          <TabsTrigger value="effects">Effects</TabsTrigger>
           <TabsTrigger value="atlas">Atlas</TabsTrigger>
         </TabsList>
         {!data ? <p className="py-10 text-muted-foreground">Loading…</p> : <>
           {tab === "story" && <TabsContent value="story"><Story ladder={stats?.ladder} /></TabsContent>}
           {tab === "live" && <TabsContent value="live" className="pt-4"><Live battle={live?.last_battle} versions={live?.versions} /></TabsContent>}
-          {tab === "harness" && <TabsContent value="harness" className="pt-4"><Harness key={run} detail={detail} /></TabsContent>}
-          {tab === "effects" && <TabsContent value="effects" className="pt-4"><Effects discoveries={stats?.discoveries} run={run} /></TabsContent>}
+          {tab === "harness" && <TabsContent value="harness" className="pt-4"><Harness key={run} detail={detail} discoveries={stats?.discoveries} /></TabsContent>}
           {tab === "atlas" && <TabsContent value="atlas" className="pt-4"><Atlas atlas={stats?.atlas} feed={data?.feed} search={live?.last_search} pipelines={stats?.pipelines} /></TabsContent>}
         </>}
       </Tabs>
