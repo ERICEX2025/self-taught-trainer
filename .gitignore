@@ -1,0 +1,11 @@
+.env
+.venv/
+__pycache__/
+replays/
+live.json
+live.json.tmp
+feed.json
+feed.json.tmp
+*.log
+report*.json
+.DS_Store
