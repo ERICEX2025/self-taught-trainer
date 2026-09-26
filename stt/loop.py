@@ -20,7 +20,7 @@ from .env import load_env
 
 load_env()
 from . import coach  # noqa: E402
-from .evaluate import evaluate  # noqa: E402
+from .evaluate import evaluate, evaluate_external  # noqa: E402
 from .harness import EDITABLE, v1  # noqa: E402
 from .llm import LLM  # noqa: E402
 from .store import Store  # noqa: E402
@@ -75,10 +75,12 @@ async def play(cfg, llm, n, opponent):
     score is the overall win rate, so a change must help against all of them to be kept."""
     opps = opponent.split("+")
     per = max(1, n // len(opps))
-    parts = await asyncio.gather(*[evaluate(cfg, llm, per, o, tools=load_tools(cfg), on_finish=on_finish,
-                                            concurrency=12, opponent_cfg=BEST.get("cfg"),
-                                            opponent_tools=load_tools(BEST["cfg"]) if o == "self" else None)
-                                   for o in opps])
+    def one(o):
+        if o.startswith("ext:"):  # an opponent in another process, e.g. a local Metamon RL agent
+            return evaluate_external(cfg, llm, per, o[4:], tools=load_tools(cfg), on_finish=on_finish)
+        return evaluate(cfg, llm, per, o, tools=load_tools(cfg), on_finish=on_finish, concurrency=12,
+                        opponent_cfg=BEST.get("cfg"), opponent_tools=load_tools(BEST["cfg"]) if o == "self" else None)
+    parts = await asyncio.gather(*[one(o) for o in opps])
     docs = [d for _, ds, _ in parts for d in ds]
     return sum(d["won"] for d in docs) / max(1, len(docs)), docs, parts[0][2]
 

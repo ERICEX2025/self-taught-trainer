@@ -57,3 +57,20 @@ async def evaluate(cfg: dict, llm, n: int, opponent: str = "heuristic", tools=No
                      "replay": f"replays/{me.username} - {tag}.html",
                      "log": [{k: v for k, v in t.items() if k != "context"} for t in me.turn_log.get(tag, [])]})
     return sum(d["won"] for d in docs) / max(1, len(docs)), docs, me
+
+
+async def evaluate_external(cfg: dict, llm, n: int, opponent_user: str, tools=None, on_finish=None,
+                            concurrency: int = 4) -> tuple[float, list[dict], HarnessPlayer]:
+    """Play n battles against an opponent running in another process (e.g. a Metamon RL agent) that
+    accepts challenges on the local server under the username opponent_user."""
+    me = HarnessPlayer(cfg, llm, on_finish=on_finish, tools=tools, battle_format=FORMAT, team=TEAM,
+                       account_configuration=AccountConfiguration(_name(f"stt{cfg['_id']}"), None),
+                       max_concurrent_battles=concurrency, save_replays="replays")
+    await me.send_challenges(opponent_user, n)
+    docs = []
+    for tag, b in me.battles.items():
+        docs.append({"version": cfg["_id"], "battle": tag, "won": bool(b.won), "turns": b.turn,
+                     "opponent": f"ext:{opponent_user}", "at": time.time(),
+                     "replay": f"replays/{me.username} - {tag}.html",
+                     "log": [{k: v for k, v in t.items() if k != "context"} for t in me.turn_log.get(tag, [])]})
+    return sum(d["won"] for d in docs) / max(1, len(docs)), docs, me
