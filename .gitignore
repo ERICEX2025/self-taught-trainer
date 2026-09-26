@@ -13,3 +13,4 @@ ladder-*.json
 stats.json
 stats.json.tmp
 heal-*.log
+web-*.log
