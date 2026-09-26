@@ -51,6 +51,22 @@ iframe { width: 100%; height: 470px; border: 0; border-radius: 8px; background: 
 .tag.win, .tag.kept { background: var(--sage-soft); color: var(--sage); }
 .tag.loss, .tag.rb { background: var(--brick-soft); color: var(--brick); }
 .tag.wait { background: var(--tan-soft); color: var(--tan-deep); }
+/* discoveries */
+.disc { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: grid; gap: 14px; }
+.disc .dh { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+.disc .dh h2 { font: 400 26px/1.15 "Instrument Serif", Georgia, serif; }
+.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.step { display: grid; gap: 6px; align-content: start; }
+.step .n { font: 600 10.5px "IBM Plex Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--tan-deep); }
+.turnq { background: var(--panel-2); border-left: 3px solid var(--brick); border-radius: 0 6px 6px 0; padding: 8px 10px; font-size: 13px; }
+.turnq .mv { font: 600 12.5px "IBM Plex Mono", monospace; }
+.turnq i { color: var(--muted); }
+.rule { background: var(--sage-soft); border-radius: 8px; padding: 10px 12px; font-size: 14.5px; }
+.proof { display: grid; gap: 6px; font-size: 13px; }
+.proof .row { display: grid; grid-template-columns: 90px 1fr 44px; gap: 8px; align-items: center; }
+.proof .bar { height: 10px; }
+.proof .bar i.new { background: var(--sage); }
+@media (max-width: 980px) { .steps { grid-template-columns: 1fr; } }
 /* agent's mind */
 .turns { display: flex; gap: 4px; flex-wrap: wrap; }
 .turns button { padding: 2px 6px; font-size: 11px; }
@@ -136,14 +152,19 @@ svg text { font-family: "IBM Plex Mono", monospace; }
 <div class="narrator" id="narrator" aria-live="polite">Waiting for the loop…</div>
 
 <nav class="tabs" role="tablist">
-  <button role="tab" data-tab="live" aria-selected="true">Live</button>
+  <button role="tab" data-tab="disc" aria-selected="true">Discoveries</button>
+  <button role="tab" data-tab="live" aria-selected="false">Live</button>
   <button role="tab" data-tab="harness" aria-selected="false">Harness</button>
   <button role="tab" data-tab="evolution" aria-selected="false">Evolution</button>
   <button role="tab" data-tab="ladder" aria-selected="false">Benchmark ladder</button>
   <button role="tab" data-tab="atlas" aria-selected="false">Atlas</button>
 </nav>
 
-<div class="pane" data-pane="live">
+<div class="pane" data-pane="disc">
+  <div id="discs" class="grid"><div class="empty">Nothing kept yet.</div></div>
+</div>
+
+<div class="pane" data-pane="live" hidden>
   <div class="grid two">
     <section class="panel">
       <div class="ph"><h2>Latest battle</h2><div class="meta"><span id="bmeta"></span> <button class="b" id="latest">latest</button></div></div>
@@ -401,10 +422,33 @@ svg text { font-family: "IBM Plex Mono", monospace; }
     }).join("");
   }
 
+  /* discoveries */
+  function turnLine(l) {
+    var m = l.match(/^t(\d+)\s+(\S+?)\((\d+)%\)\s+vs\s+(\S+?)\((\d+)%(?:, (\w+))?\)\s+->\s+(\S+)\s*\|\s*reason:\s*(.*)$/);
+    if (!m) return '<div class="turnq">' + esc(l) + "</div>";
+    return '<div class="turnq"><span class="mv">turn ' + m[1] + " · " + esc(m[2]) + " (" + m[3] + "%) vs " + esc(m[4]) + " (" + m[5] + "%" + (m[6] ? ", " + esc(m[6]) : "") + ") → " + esc(m[7].replace(/^(move|switch):/, "")) + "</span><br><i>“" + esc(m[8]) + "”</i></div>";
+  }
+  function bar(label, v, cls) { return '<div class="row"><span>' + label + '</span><span class="bar"><i class="' + (cls || "") + '" style="width:' + Math.round((v || 0) * 100) + '%"></i></span><span class="mono">' + pct(v) + "</span></div>"; }
+  function renderDiscoveries(st) {
+    var ds = (st && st.discoveries) || []; if (!ds.length) return;
+    document.getElementById("discs").innerHTML = ds.map(function (d, i) {
+      var ex = d.examples || {}, c = d.change, rt = d.retest || {};
+      var what = c.kind === "add_rule" ? "“" + esc(c.value) + "”" : c.kind === "write_tool" ? "wrote a tool: " + esc(c.value && c.value.name) : describe(c);
+      return '<article class="disc"><div class="dh"><h2>Discovery ' + (i + 1) + ": " + esc(ex.plain || c.rationale) + '</h2><span class="small">' + esc(d.run) + " · generation " + d.generation + " · " + esc(d.parent.split(".").pop()) + " → " + esc(d.version.split(".").pop()) + "</span></div>" +
+        '<div class="steps">' +
+        '<div class="step"><span class="n">1 · the mistake, from a real loss</span>' + ((ex.lines || []).map(turnLine).join("") || '<div class="small">(no quote)</div>') + "</div>" +
+        '<div class="step"><span class="n">2 · what the coach noticed</span><div>' + esc(c.rationale) + '</div><div class="small">after studying ' + (d.n_losses || "?") + " losses out of " + (d.n_battles || "?") + " battles</div></div>" +
+        '<div class="step"><span class="n">3 · the change it made</span><div class="rule">' + what + "</div></div>" +
+        '<div class="step"><span class="n">4 · the proof</span><div class="proof">' + bar("before", d.first.best) + bar("after", d.first.top, "new") +
+          (rt.best != null ? '<span class="small">re-test, head to head:</span>' + bar("before", rt.best) + bar("after", rt.top, "new") + '<span class="small">average <b>' + pct(rt.best_avg) + " → " + pct(rt.top_avg) + '</b> · <span class="tag kept">KEPT</span></span>' : "") +
+        "</div></div></div></article>";
+    }).join("");
+  }
+
   function tick() {
     Promise.all([getJSON("live.json"), getJSON("stats.json"), getJSON("feed.json")]).then(function (r) {
       if (r[0]) { S.live = r[0]; renderTop(S.live); renderHarness(S.live); renderEvolution(S.live); if (S.live.last_battle && S.live.last_battle.tag !== shownTag && (!shownTag || Date.now() - shownAt > 45000)) showBattle(S.live.last_battle); }
-      if (r[1]) { S.stats = r[1]; renderLadder(S.stats); }
+      if (r[1]) { S.stats = r[1]; renderLadder(S.stats); renderDiscoveries(S.stats); }
       renderAtlas(S.stats, S.live);
       if (r[2]) renderFeed(r[2]);
     }).finally(function () { setTimeout(tick, 2500); });

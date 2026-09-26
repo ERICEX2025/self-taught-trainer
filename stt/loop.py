@@ -172,6 +172,8 @@ async def main(a):
                          "retest": retest, "kept": keep}
         store.save_reflection(ref)
         if keep:
+            ref["result"]["examples"] = await coach.explain_keep(llm, prompt, top["change"])
+            store.save_reflection(ref)
             if top["change"].get("lesson"):
                 store.add_lesson(top["change"]["lesson"], top["_id"], run)
             best, docs = top, top_docs

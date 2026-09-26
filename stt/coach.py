@@ -137,3 +137,23 @@ def apply_change(cfg: dict, change: dict, new_id: str) -> tuple[dict | None, str
     else:
         return None, f"not a valid {k} change"
     return c, None
+
+
+EXAMPLES_SYSTEM = """You explain a harness change that was kept after testing. From the battle excerpts, copy the one or
+two turn lines (each starts with 't' and a turn number) that best show the problem this change fixes. Copy them exactly,
+character for character. Then write one plain-English sentence a high-schooler would understand explaining the mistake.
+Respond with JSON only: {"lines": ["exact line", ...], "plain": "one sentence"}"""
+
+
+async def explain_keep(llm, prompt_text: str, change: dict) -> dict:
+    """Pick real example turns for a kept change. Quotes are verified against the prompt, so nothing is invented."""
+    ask = (f"The change: {change.get('kind')}: {json.dumps(change.get('value'))[:400]}\n"
+           f"The coach's reason: {change.get('rationale', '')}\n\nBattle excerpts:\n{prompt_text}")
+    text = await llm.complete(EXAMPLES_SYSTEM, ask, llm.coach_model, max_tokens=3000)
+    try:
+        data = json.loads(text[text.find("{"): text.rfind("}") + 1], strict=False)
+    except ValueError:
+        return {"lines": [], "plain": ""}
+    real = [ln.strip() for ln in prompt_text.split("\n")]
+    lines = [q.strip() for q in data.get("lines", []) if isinstance(q, str) and q.strip() in real][:2]
+    return {"lines": lines, "plain": str(data.get("plain", ""))[:300]}

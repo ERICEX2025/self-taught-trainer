@@ -34,7 +34,18 @@ def snapshot(st: Store) -> dict:
         a["families"][r["_id"]["family"]] = {"games": r["games"], "wins": r["wins"]}
     runs = [{"run": r["_id"]["run"], "version": r["_id"]["version"], "battles": r["battles"],
              "win_rate": r["win_rate"]} for r in st.battles.aggregate(RUN_BY_VERSION)]
-    return {"at": time.time(), "ladder": ladder, "runs": runs, "atlas": st.stats(),
+    disc = []
+    for r in st.reflections.find({"result.kept": True}).sort([("run", 1), ("generation", 1)]):
+        top = r["result"]["top"]
+        c = next((c for c in r["candidates"] if c["id"] == top), None)
+        if not c:
+            continue
+        rt = r["result"].get("retest") or {}
+        disc.append({"run": r["run"], "generation": r["generation"], "version": top, "parent": r["parent"],
+                     "change": c["change"], "examples": r["result"].get("examples") or {},
+                     "first": {"best": r["result"].get("best_first"), "top": r["result"].get("top_first")},
+                     "retest": rt, "n_losses": r["saw"].get("n_losses"), "n_battles": r["saw"].get("n_battles")})
+    return {"at": time.time(), "ladder": ladder, "runs": runs, "atlas": st.stats(), "discoveries": disc,
             "pipelines": {"ladder_by_family": LADDER_BY_FAMILY, "run_by_version": RUN_BY_VERSION}}
 
 
