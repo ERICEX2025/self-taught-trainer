@@ -161,6 +161,40 @@ svg text { font-family: "IBM Plex Mono", monospace; }
 .ht th { font: 600 11px "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .gate { display: inline-block; font: 600 11px "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; background: var(--sage-soft); color: var(--sage); border-radius: 999px; padding: 3px 10px; }
 @media (max-width: 980px) { .ov { grid-template-columns: 1fr; } }
+.story { font-size: 17px; line-height: 1.55; max-width: 820px; margin: 0 auto; padding-block: 36px 56px; display: grid; gap: 72px; }
+.story h1, .story h2 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; margin: 0; text-wrap: balance; }
+.story h1 { font-size: clamp(40px, 7vw, 64px); line-height: 1.05; }
+.story h1 b, .story h2 b { font-weight: 400; color: var(--tan-deep); }
+.story h2 { font-size: clamp(30px, 5vw, 42px); line-height: 1.1; }
+.story .lede { font-size: 19px; color: var(--muted); max-width: 52ch; margin: 16px 0 0; }
+.story .step { font: 500 12px "IBM Plex Mono", monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--tan-deep); margin-bottom: 10px; }
+.story section p { margin: 14px 0 0; max-width: 60ch; }
+.story .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 22px; }
+.story .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; min-width: 0; }
+.story .card .lab { font: 500 11.5px "IBM Plex Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.story .card.bad { background: var(--brick-soft); border-color: #E8C9C0; }
+.story .card.good { background: var(--sage-soft); border-color: #C9DBC6; }
+.story .card.bad .lab { color: var(--brick); } .card.good .lab { color: var(--sage); }
+.story .mono { font: 14px/1.5 "IBM Plex Mono", monospace; overflow-wrap: anywhere; }
+.story ul.rules { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 15px; }
+.story .quote { font: italic 400 22px/1.3 "Instrument Serif", Georgia, serif; margin: 22px 0 0; padding-left: 16px; border-left: 3px solid var(--tan); max-width: 48ch; }
+.story .quote span { display: block; font: 13px "IBM Plex Mono", monospace; font-style: normal; color: var(--muted); margin-top: 6px; }
+.story .big { font: 400 clamp(56px, 10vw, 84px)/1 "Instrument Serif", Georgia, serif; color: var(--tan-deep); font-variant-numeric: tabular-nums; }
+.story .bars { display: grid; gap: 12px; margin-top: 22px; }
+.story .bar { height: auto; background: none; overflow: visible; border-radius: 0; }
+.story .step { display: block; }
+.story .bar { display: grid; grid-template-columns: 150px 1fr 56px; gap: 12px; align-items: center; font-size: 15px; }
+.story .bar .track { height: 14px; background: var(--panel-2); border-radius: 7px; overflow: hidden; }
+.story .bar .fill { height: 100%; background: var(--tan); border-radius: 7px; }
+.story .bar .fill.hi { background: var(--tan-deep); }
+.story .bar b { font: 500 15px "IBM Plex Mono", monospace; text-align: right; font-variant-numeric: tabular-nums; }
+.story .bar .note { grid-column: 2 / 4; font-size: 12.5px; color: var(--muted); margin-top: -8px; }
+.story .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 18px; font: 500 13px "IBM Plex Mono", monospace; }
+.story .flow span { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; }
+.story .flow i { font-style: normal; color: var(--muted); }
+.story footer { border-top: 1px solid var(--line); padding-top: 22px; font-size: 14px; color: var(--muted); display: grid; gap: 6px; }
+.story footer a { color: var(--tan-deep); }
+@media (max-width: 640px) { .story .pair { grid-template-columns: 1fr; } .story .bar { grid-template-columns: 96px 1fr 48px; } .story .story { gap: 56px; padding-block: 36px 56px; } }
 </style>
 </head>
 <body>
@@ -174,41 +208,78 @@ svg text { font-family: "IBM Plex Mono", monospace; }
 <div class="narrator" id="narrator" aria-live="polite" hidden>Waiting for the loop…</div>
 
 <nav class="tabs" role="tablist">
-  <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
-  <button role="tab" data-tab="disc" aria-selected="false">Discoveries</button>
-  <button role="tab" data-tab="healer" aria-selected="false">Healer</button>
+  <button role="tab" data-tab="overview" aria-selected="true">Story</button>
   <button role="tab" data-tab="live" aria-selected="false">Live</button>
   <button role="tab" data-tab="harness" aria-selected="false">Harness</button>
-  <button role="tab" data-tab="evolution" aria-selected="false">Evolution</button>
-  <button role="tab" data-tab="ladder" aria-selected="false">Benchmark ladder</button>
+  <button role="tab" data-tab="healer" aria-selected="false">Healer</button>
+  <button role="tab" data-tab="ladder" aria-selected="false">Ladder</button>
   <button role="tab" data-tab="atlas" aria-selected="false">Atlas</button>
 </nav>
 
 <div class="pane" data-pane="overview">
-  <p class="ov-intro">An AI plays Pokémon. <b>Two more AIs</b> make it better.</p>
-  <div class="ov">
-    <section class="panel">
-      <div class="who">The coach · strategy</div>
-      <div class="num">52% → 71%</div>
-      <div class="cap">win rate vs the training bot</div>
-      <p class="one">It taught itself Gen 1 facts, like “freeze is permanent.”</p>
-      <button class="b go" data-jump="disc">What it learned →</button>
-    </section>
-    <section class="panel">
-      <div class="who">The healer · code</div>
-      <div class="num">194</div>
-      <div class="cap">turns misled by a bug in our code</div>
-      <p class="one">It read its own logs, found the bug, fixed it, and proved it with tests.</p>
-      <button class="b go" data-jump="healer">The fix →</button>
-    </section>
-    <section class="panel">
-      <div class="who">The real test · PokéAgent ladder</div>
-      <div class="num">14%</div>
-      <div class="cap">win rate against real opponents</div>
-      <p class="one">Easy training bots didn't carry over. Next: stronger sparring partners.</p>
-      <button class="b go" data-jump="ladder">The ladder →</button>
-    </section>
+<div class="story">
+
+<header>
+  <h1>An AI plays Pokémon.<br><b>Two more AIs</b> make it better.</h1>
+  <p class="lede">A small model plays Gen 1 Pokémon battles. It is never retrained. Instead, other AIs rewrite the instructions and code around it, which is its <i>harness</i>.</p>
+  <div class="flow"><span>play games</span><i>→</i><span>coach fixes strategy</span><i>→</i><span>healer fixes code</span><i>→</i><span>test on real opponents</span></div>
+</header>
+
+<section>
+  <div class="step">1 · The coach</div>
+  <h2>It read its losses and <b>taught itself the rules</b>.</h2>
+  <p>After every round, a coach AI studies the lost games and suggests one change. A change is kept only if the player then wins more on fresh games. In Run 1, its win rate against the training bot went from <b style="font-weight:600">52% to 71%</b>.</p>
+  <div class="pair">
+    <div class="card bad">
+      <div class="lab">Where it started</div>
+      <div class="mono">“You are playing a turn-based game. Your goal is to win.”</div>
+      <p style="font-size:14px;color:var(--muted)">No rules. Nothing about Pokémon.</p>
+    </div>
+    <div class="card good">
+      <div class="lab">What it learned · Runs 1 and 2</div>
+      <ul class="rules">
+        <li>A Hyper Beam that knocks out skips the recharge turn in Gen 1</li>
+        <li>Freeze is permanent in Gen 1, so press the advantage</li>
+        <li>A foe can only have one status at a time</li>
+        <li>Wrote its own tool: a Victreebel endgame warning</li>
+      </ul>
+    </div>
   </div>
+</section>
+
+<section>
+  <div class="step">2 · The healer</div>
+  <h2>It found <b>a bug in our own code</b> that we never noticed.</h2>
+  <p>A coding agent reads the logs of every game, looking for places where the code, not the strategy, is wrong. It found that when a Pokémon is asleep or frozen, the game offers a “Fight” button, and our code described that button as an attack.</p>
+  <blockquote class="quote">“Fight can finish the weakened opposing Cloyster immediately.”<span>the player, fooled, 194 times across 80 games</span></blockquote>
+  <div class="pair">
+    <div class="card bad">
+      <div class="lab">What the player saw</div>
+      <div class="mono">move:fight · type Normal, power 0, accuracy 0.01</div>
+    </div>
+    <div class="card good">
+      <div class="lab">After the healer's fix</div>
+      <div class="mono">move:fight · continue the turn without selecting an attack (asleep, frozen, or trapped)</div>
+    </div>
+  </div>
+  <p>It fixed 8 lines, wrote 3 tests, and had to pass a safety check it cannot edit before a human merged it.</p>
+</section>
+
+<section>
+  <div class="step">3 · The real test</div>
+  <h2>Then we tested it where it counts, and <b>it barely moved</b>.</h2>
+  <p>We entered the PokéAgent Challenge (a NeurIPS 2025 benchmark) and played ranked games against opponents we never trained against.</p>
+  <div class="bars" role="img" aria-label="Win rates: 71 percent against the training bot, 13 percent and 14 percent on the real ladder">
+    <div class="bar"><span>vs training bot</span><div class="track"><div class="fill hi" style="width:71%"></div></div><b>71%</b></div>
+    <div class="bar"><span>ladder · start</span><div class="track"><div class="fill" style="width:13%"></div></div><b>13%</b></div>
+    <div class="bar"><span>ladder · evolved</span><div class="track"><div class="fill" style="width:14%"></div></div><b>14%</b></div>
+    <div class="bar"><span></span><span class="note">Ladder: 20 wins of 156 games (start), 11 of 80 (evolved).</span></div>
+  </div>
+  <p><b style="font-weight:600">What we learned:</b> an AI that improves itself only gets as good as its sparring partners. Our training bots were too easy. Next: train against strong reinforcement-learning agents.</p>
+</section>
+
+<p class="small" style="margin:0">The other tabs are the live system: <b>Live</b> shows the player's reasoning turn by turn, <b>Harness</b> shows what it learned version by version, <b>Healer</b> is the full bug report, <b>Ladder</b> is the benchmark, <b>Atlas</b> is the database.</p>
+</div>
 </div>
 
 <div class="pane" data-pane="healer" hidden>
