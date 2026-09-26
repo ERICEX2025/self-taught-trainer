@@ -250,37 +250,28 @@ function AgentView({ t, cfg }) {
   const c = useMemo(() => parseContext(t?.context), [t])
   if (!t) return null
   const rules = cfg?.rules || []
-  const summary = "flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden"
+  const label = [c.tools.length ? `tool hint: ${c.tools.map((x) => x.name).join(", ")}` : "no tool hint", `${rules.length} rules`].join(" · ")
   return (
-    <div className="grid gap-3">
-      <details className="group rounded-lg border p-3">
-        <summary className={summary}>
-          <span>Tool hints this turn · {c.tools.length ? c.tools.map((x) => x.name).join(", ") : "none"}</span>
-          <span className="text-muted-foreground transition-transform group-open:rotate-90">›</span>
-        </summary>
-        <div className="mt-2 grid gap-2">
-          {c.tools.length ? c.tools.map((tl) => (
-            <div key={tl.name} className="rounded-md bg-primary/5 p-2 text-sm">
-              <div className="font-mono text-xs text-muted-foreground">{tl.name} · written by the coach</div>
-              {tl.text.join(" ")}
-            </div>
-          )) : <p className="text-sm text-muted-foreground">No tool fired this turn. Tools only speak up when their situation comes up.</p>}
-        </div>
-      </details>
-      <details className="group rounded-lg border p-3">
-        <summary className={summary}>
-          <span>Rules it was playing with · {rules.length}</span>
-          <span className="text-muted-foreground transition-transform group-open:rotate-90">›</span>
-        </summary>
+    <details className="group rounded-lg border p-3">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
+        <span>What the coach gave it · <span className="font-normal text-muted-foreground">{label}</span></span>
+        <span className="text-muted-foreground transition-transform group-open:rotate-90">›</span>
+      </summary>
+      <div className="mt-3 grid gap-3">
+        {c.tools.map((tl) => (
+          <div key={tl.name} className="rounded-md bg-primary/5 p-2 text-sm">
+            <div className="font-mono text-xs text-muted-foreground">tool {tl.name} · fired this turn</div>
+            {tl.text.join(" ")}
+          </div>
+        ))}
         {rules.length ? (
-          <ul className="mt-2 grid list-disc gap-1 pl-4 text-sm text-muted-foreground">{rules.map((r) => <li key={r}>{r}</li>)}</ul>
-        ) : <p className="mt-2 text-sm text-muted-foreground">None: this is the starting version.</p>}
-      </details>
-      <div className="grid gap-1.5">
-        <Label>Exact text it received this turn</Label>
-        <pre className="max-h-[260px] overflow-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap">{t.context}</pre>
+          <div className="grid gap-1">
+            <Label>Rules</Label>
+            <ul className="grid list-disc gap-1 pl-4 text-sm text-muted-foreground">{rules.map((r) => <li key={r}>{r}</li>)}</ul>
+          </div>
+        ) : <p className="text-sm text-muted-foreground">No rules: this is the starting version.</p>}
       </div>
-    </div>
+    </details>
   )
 }
 
@@ -347,18 +338,6 @@ function Live({ battle, versions }) {
       <div className="grid min-w-0 content-start gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>Why it chose · turn {t?.turn}</CardTitle>
-            <CardDescription>Its reason, the hints its tools gave, and the rules it learned. Follows the viewer as it plays.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3">
-            <p className="text-lg">“{t?.reason}”</p>
-            <p className="font-mono text-sm">→ chose {(t?.action || "").replace(/^(move|switch):/, (m) => (m === "switch:" ? "switch to " : ""))}</p>
-            <Separator />
-            <AgentView t={t} cfg={cfg} />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
             <CardTitle>Every turn</CardTitle>
             <CardDescription>Click a turn to jump the viewer there</CardDescription>
           </CardHeader>
@@ -378,6 +357,18 @@ function Live({ battle, versions }) {
                 ))}
               </div>
             </ScrollArea>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Why it chose · turn {t?.turn}</CardTitle>
+            <CardDescription>Its reason, and what the coach gave it. Follows the viewer as it plays.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <p className="text-lg">“{t?.reason}”</p>
+            <p className="font-mono text-sm">→ chose {(t?.action || "").replace(/^(move|switch):/, (m) => (m === "switch:" ? "switch to " : ""))}</p>
+            <Separator />
+            <AgentView t={t} cfg={cfg} />
           </CardContent>
         </Card>
       </div>
