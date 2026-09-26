@@ -155,62 +155,58 @@ function Live({ battle }) {
   if (!battle) return <p className="text-muted-foreground">No battle yet.</p>
   const replay = battle.replay ? `/api/replay?file=${encodeURIComponent(battle.replay.split("/").pop())}` : null
   return (
-    <div className="grid gap-4">
-    {replay && (
-      <Card>
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+      <Card className="min-w-0">
         <CardHeader>
           <CardTitle>Watch the battle</CardTitle>
-          <CardDescription>The real Pokémon Showdown viewer, replaying a game our player just played. Use its controls to step through turns.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <iframe src={replay} title="Pokémon Showdown replay" className="h-[560px] w-full rounded-md border bg-white" />
-        </CardContent>
-      </Card>
-    )}
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-      <Card>
-        <CardHeader>
-          <CardTitle>Latest battle</CardTitle>
           <CardDescription>
-            {short(battle.version)} · {turns.length} turns · <Badge variant={battle.won ? "default" : "destructive"}>{battle.won ? "won" : "lost"}</Badge>
+            The real Pokémon Showdown viewer · {short(battle.version)} · {turns.length} turns ·{" "}
+            <Badge variant={battle.won ? "default" : "destructive"}>{battle.won ? "won" : "lost"}</Badge>
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[460px] pr-3">
-            <div className="grid gap-1">
-              {turns.map((x, i) => (
-                <button key={i} onClick={() => setSel(i)}
-                  className={`grid grid-cols-[48px_1fr] gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted ${t === x ? "bg-muted" : ""}`}>
-                  <span className="font-mono text-muted-foreground">T{x.turn}</span>
-                  <span>
-                    <b className="font-medium">{(x.action || "").replace(/^(move|switch):/, "")}</b>
-                    <span className="text-muted-foreground"> · {x.me} {x.me_hp}% vs {x.opp} {x.opp_hp}%</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </ScrollArea>
+          {replay ? <iframe src={replay} title="Pokémon Showdown replay" className="h-[620px] w-full rounded-md border bg-white" />
+            : <p className="text-muted-foreground">No replay saved for this battle.</p>}
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>The player's mind · turn {t?.turn}</CardTitle>
-          <CardDescription>What it saw, and why it chose</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <div>
-            <Label>Its reason</Label>
-            <p className="mt-1 text-lg">“{t?.reason}”</p>
-            <p className="mt-1 font-mono text-sm">→ {t?.action} {t?.invalid && <Badge variant="destructive">invalid</Badge>}</p>
-          </div>
-          <Separator />
-          <div>
-            <Label>What it saw</Label>
-            <pre className="mt-2 max-h-[300px] overflow-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap">{t?.context}</pre>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+      <div className="grid min-w-0 content-start gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>The player's mind · turn {t?.turn}</CardTitle>
+            <CardDescription>Why it chose, and what it saw</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <p className="text-lg">“{t?.reason}”</p>
+            <p className="font-mono text-sm">→ {t?.action} {t?.invalid && <Badge variant="destructive">invalid</Badge>}</p>
+            <details>
+              <summary className="cursor-pointer text-sm text-muted-foreground">What it saw</summary>
+              <pre className="mt-2 max-h-[240px] overflow-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap">{t?.context}</pre>
+            </details>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Every turn</CardTitle>
+            <CardDescription>Click a turn to read the player's reason</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[330px] pr-3">
+              <div className="grid gap-1">
+                {turns.map((x, i) => (
+                  <button key={i} onClick={() => setSel(i)}
+                    className={`grid grid-cols-[44px_1fr] gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted ${t === x ? "bg-muted" : ""}`}>
+                    <span className="font-mono text-muted-foreground">T{x.turn}</span>
+                    <span>
+                      <b className="font-medium">{(x.action || "").replace(/^(move|switch):/, "")}</b>
+                      <span className="text-muted-foreground"> · {x.me} {x.me_hp}% vs {x.opp} {x.opp_hp}%</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
@@ -450,7 +446,7 @@ export default function Dashboard() {
   const recent = [...(live?.ladders?.["stt-base"]?.recent || []), ...(live?.ladders?.["stt-evolved"]?.recent || [])].slice(0, 40)
 
   return (
-    <main className="mx-auto grid max-w-6xl gap-6 px-4 py-6 sm:px-6">
+    <main className="mx-auto grid max-w-[1440px] gap-6 px-4 py-6 sm:px-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Self-Taught Trainer</h1>
