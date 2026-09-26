@@ -100,6 +100,44 @@ function Story({ ladder }) {
       </section>
 
       <section className="grid gap-4">
+        <Label>How it trains, and how we test it</Label>
+        <h2 className="text-3xl font-semibold tracking-tight text-balance">It practices against simple bots, and every change has to prove itself.</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Card size="sm">
+            <CardHeader>
+              <CardTitle>Rule bot</CardTitle>
+              <CardDescription>A scripted player from the poke-env library. It picks moves by type matchups and damage and switches out of bad matchups. Decent, but simple.</CardDescription>
+            </CardHeader>
+          </Card>
+          <Card size="sm">
+            <CardHeader>
+              <CardTitle>Max-power bot</CardTitle>
+              <CardDescription>Always uses its strongest attack and only switches when forced. Easy to beat once you know the game.</CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Run 1 practiced against the rule bot only; Runs 2 and 3 played half their games against each bot. Both sides use the same six Gen 1 Pokémon, so the only difference is the decisions.
+          These are sparring partners, not strong players.
+        </p>
+        <Card>
+          <CardHeader><CardTitle>One round of training</CardTitle><CardDescription>4–5 rounds per run</CardDescription></CardHeader>
+          <CardContent>
+            <ol className="grid list-decimal gap-2 pl-5 text-sm">
+              <li>The current best version plays <b>60 fresh games</b>.</li>
+              <li>The coach reads the lost games (and a few wins, for contrast) and proposes <b>3–4 different changes</b>: a rule, a tool, or new instructions.</li>
+              <li>Each change plays <b>60 fresh games</b>, at the same time as the current best, so they face the same conditions.</li>
+              <li>The best-looking change gets a <b>head-to-head re-test</b> (60 more games each), because the top of 4 is often just lucky.</li>
+              <li>It is kept only if its average beats the current best by <b>5 points or more</b>. Otherwise it goes on a “tried, didn&apos;t help” list the coach sees next time.</li>
+            </ol>
+          </CardContent>
+        </Card>
+        <p className="text-sm text-muted-foreground">
+          After training, we re-test the start and the best versions on 60 brand-new games each, then on the real PokéAgent ladder against opponents we never practiced against.
+        </p>
+      </section>
+
+      <section className="grid gap-4">
         <Label>1 · The coach</Label>
         <h2 className="text-3xl font-semibold tracking-tight text-balance">It read its losses and taught itself the rules.</h2>
         <p className="max-w-prose">
@@ -242,6 +280,33 @@ function Live({ battle }) {
   )
 }
 
+/* ---------------- How a change is kept (A/B test) ---------------- */
+
+function KeepRule() {
+  const steps = [
+    ["A vs B", "A is the current best harness. B is A plus one change from the coach. Everything else is identical: same model, same team, same opponents."],
+    ["Round 1", "A and each B play 60 fresh games at the same time. The coach proposes 3–4 changes, so there are 3–4 B's."],
+    ["Round 2", "The best B plays A again, head to head, 60 more games each. The top of 4 is often just lucky, so it must win twice."],
+    ["Decision", "Average both rounds. B is kept only if it beats A by 5 points or more. Otherwise A stays, and the change goes on a “tried, didn't help” list."],
+  ]
+  return (
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle>How a change is kept: an A/B test</CardTitle>
+        <CardDescription>Games vs the rule bot (Run 1) or half rule bot, half max-power bot (Runs 2–3). Both sides use the same six Pokémon.</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {steps.map(([t, d]) => (
+          <div key={t} className="grid content-start gap-1">
+            <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{t}</div>
+            <p className="text-sm">{d}</p>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
 /* ---------------- Harness ---------------- */
 
 function Harness({ detail }) {
@@ -252,6 +317,7 @@ function Harness({ detail }) {
   const tried = (detail.versions || []).length - kept.length
   return (
     <div className="grid gap-4">
+      <KeepRule />
       <div className="flex flex-wrap items-center gap-2">
         {kept.map((x, i) => (
           <span key={x._id} className="flex items-center gap-2">
@@ -302,7 +368,7 @@ function Harness({ detail }) {
         </Card>
       </div>
       <Card>
-        <CardHeader><CardTitle>Every idea the coach tried</CardTitle><CardDescription>kept only if it won more on fresh games, twice</CardDescription></CardHeader>
+        <CardHeader><CardTitle>Every idea the coach tried</CardTitle><CardDescription>each row is one B, with its first-round win rate; most did not pass</CardDescription></CardHeader>
         <CardContent>
           <Table>
             <TableHeader><TableRow><TableHead>Version</TableHead><TableHead>Change</TableHead><TableHead className="text-right">Win rate</TableHead><TableHead>Result</TableHead></TableRow></TableHeader>
@@ -332,9 +398,9 @@ function Effects({ discoveries, run }) {
   if (!shown.length) return <p className="text-muted-foreground">No kept changes yet.</p>
   return (
     <div className="grid gap-4">
+      <KeepRule />
       <p className="max-w-prose text-muted-foreground">
-        Every change the coach kept, with the mistake it was meant to fix and what happened to the win rate. Each change had to win twice:
-        once on 30 fresh games, then again in a head-to-head re-test against the version before it.
+        Every change that passed, with the mistake it was meant to fix and its A/B result.
         {!list.length && <> (No kept changes in {run}; showing all runs.)</>}
       </p>
       {shown.map((d) => {
@@ -360,71 +426,18 @@ function Effects({ discoveries, run }) {
                 )}
               </div>
               <div className="grid content-start gap-3">
-                <Label>Win rate · before → after</Label>
+                <Label>A/B result · A (before) → B (with the change)</Label>
                 <div className="text-3xl font-semibold tabular-nums">{pct(before)} → {pct(after)}</div>
                 <div className="grid gap-2 text-sm">
-                  <div className="grid grid-cols-[64px_1fr_40px] items-center gap-2"><span className="text-muted-foreground">before</span><Progress value={Math.round((before || 0) * 100)} className="opacity-60" /><span className="text-right font-mono">{pct(before)}</span></div>
-                  <div className="grid grid-cols-[64px_1fr_40px] items-center gap-2"><span>after</span><Progress value={Math.round((after || 0) * 100)} /><span className="text-right font-mono">{pct(after)}</span></div>
+                  <div className="grid grid-cols-[64px_1fr_40px] items-center gap-2"><span className="text-muted-foreground">A</span><Progress value={Math.round((before || 0) * 100)} className="opacity-60" /><span className="text-right font-mono">{pct(before)}</span></div>
+                  <div className="grid grid-cols-[64px_1fr_40px] items-center gap-2"><span>B</span><Progress value={Math.round((after || 0) * 100)} /><span className="text-right font-mono">{pct(after)}</span></div>
                 </div>
-                <p className="text-xs text-muted-foreground">Average of the first test and the head-to-head re-test, 30 fresh games each. Small samples, so a few points can be luck.</p>
+                <p className="text-xs text-muted-foreground">Average of the first test and the head-to-head re-test, 60 fresh games each. Small samples, so a few points can be luck.</p>
               </div>
             </CardContent>
           </Card>
         )
       })}
-    </div>
-  )
-}
-
-/* ---------------- Ladder ---------------- */
-
-function Ladder({ ladder, recent }) {
-  const rows = [["stt-base", "v1 · the starting harness"], ["stt-evolved", "r1.v10 · best of Run 1"]]
-  return (
-    <div className="grid gap-4">
-      <p className="max-w-prose text-muted-foreground">
-        The PokéAgent Challenge (NeurIPS 2025) runs a public Gen 1 OU ladder. We played ranked games against the organizers' baseline agents, which we never trained against.
-      </p>
-      <div className="grid gap-3 md:grid-cols-2">
-        {rows.map(([agent, what]) => {
-          const d = ladder?.[agent]
-          if (!d) return null
-          return (
-            <Card key={agent}>
-              <CardHeader>
-                <CardTitle className="font-mono">{agent}</CardTitle>
-                <CardDescription>{what}</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4">
-                <div className="text-5xl font-semibold tabular-nums">{pct(d.wins / d.games)}</div>
-                <p className="text-sm text-muted-foreground">{d.wins} wins of {d.games} ranked games</p>
-                <Table>
-                  <TableHeader><TableRow><TableHead>Opponent family</TableHead><TableHead className="text-right">Games</TableHead><TableHead className="text-right">Won</TableHead></TableRow></TableHeader>
-                  <TableBody>
-                    {Object.entries(d.families || {}).map(([f, x]) => (
-                      <TableRow key={f}>
-                        <TableCell className="font-mono">{f}</TableCell>
-                        <TableCell className="text-right tabular-nums">{x.games}</TableCell>
-                        <TableCell className="text-right tabular-nums">{pct(x.wins / x.games)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
-      {recent?.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle>Recent ladder games</CardTitle></CardHeader>
-          <CardContent className="flex flex-wrap gap-1.5">
-            {recent.map((g) => (
-              <Badge key={g.battle} variant={g.won ? "default" : "secondary"} title={`${g.opponent} · ${g.turns} turns`}>{g.won ? "W" : "L"} · {g.opponent}</Badge>
-            ))}
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }
@@ -554,7 +567,6 @@ export default function Dashboard() {
   const runs = Object.keys(stats?.run_detail || {}).filter((r) => r !== "test")
   const detail = stats?.run_detail?.[run]
   const best = detail?.versions?.find((v) => v._id === detail.best)
-  const recent = [...(live?.ladders?.["stt-base"]?.recent || []), ...(live?.ladders?.["stt-evolved"]?.recent || [])].slice(0, 40)
 
   return (
     <main className="mx-auto grid max-w-[1440px] gap-6 px-4 py-6 sm:px-6">
@@ -583,7 +595,6 @@ export default function Dashboard() {
           <TabsTrigger value="live">Live</TabsTrigger>
           <TabsTrigger value="harness">Harness</TabsTrigger>
           <TabsTrigger value="effects">Effects</TabsTrigger>
-          <TabsTrigger value="ladder">Ladder</TabsTrigger>
           <TabsTrigger value="atlas">Atlas</TabsTrigger>
         </TabsList>
         {!data ? <p className="py-10 text-muted-foreground">Loading…</p> : <>
@@ -591,7 +602,6 @@ export default function Dashboard() {
           {tab === "live" && <TabsContent value="live" className="pt-4"><Live battle={live?.last_battle} /></TabsContent>}
           {tab === "harness" && <TabsContent value="harness" className="pt-4"><Harness key={run} detail={detail} /></TabsContent>}
           {tab === "effects" && <TabsContent value="effects" className="pt-4"><Effects discoveries={stats?.discoveries} run={run} /></TabsContent>}
-          {tab === "ladder" && <TabsContent value="ladder" className="pt-4"><Ladder ladder={stats?.ladder} recent={recent} /></TabsContent>}
           {tab === "atlas" && <TabsContent value="atlas" className="pt-4"><Atlas atlas={stats?.atlas} feed={data?.feed} search={live?.last_search} pipelines={stats?.pipelines} /></TabsContent>}
         </>}
       </Tabs>
