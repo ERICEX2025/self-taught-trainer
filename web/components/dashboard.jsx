@@ -85,6 +85,21 @@ function Story({ ladder }) {
       </header>
 
       <section className="grid gap-4">
+        <Label>The player</Label>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {[
+            ["GPT-5.4 mini", "a small, cheap model with reasoning turned off, so it answers fast"],
+            ["Never retrained", "its weights never change; only the harness around it does"],
+            ["One move per turn", "it sees the battle as text, gives a one-line reason, and picks a legal move"],
+          ].map(([t, d]) => (
+            <Card key={t} size="sm">
+              <CardHeader><CardTitle>{t}</CardTitle><CardDescription>{d}</CardDescription></CardHeader>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-4">
         <Label>1 · The coach</Label>
         <h2 className="text-3xl font-semibold tracking-tight text-balance">It read its losses and taught itself the rules.</h2>
         <p className="max-w-prose text-muted-foreground">
@@ -109,7 +124,7 @@ function Story({ ladder }) {
 
       <section className="grid gap-4">
         <Label>2 · The real test</Label>
-        <h2 className="text-3xl font-semibold tracking-tight text-balance">Then we tested it where it counts, and it barely moved.</h2>
+        <h2 className="text-3xl font-semibold tracking-tight text-balance">Then we tested it against opponents it had never seen.</h2>
         <p className="max-w-prose text-muted-foreground">We entered the PokéAgent Challenge (a NeurIPS 2025 benchmark) and played ranked games against opponents we never trained against.</p>
         <Card>
           <CardContent className="grid gap-4">
@@ -121,7 +136,7 @@ function Story({ ladder }) {
             </p>
           </CardContent>
         </Card>
-        <p><b>What we learned:</b> an AI that improves itself only gets as good as its sparring partners. Our training bots were too easy. Next: train against strong reinforcement-learning agents.</p>
+        <p><b>What we learned:</b> the gains against our training bots didn&apos;t carry over to the real ladder yet. A self-improving AI only gets as good as its sparring partners, so the next step is tougher opponents.</p>
       </section>
     </div>
   )
