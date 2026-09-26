@@ -1,8 +1,6 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -71,13 +69,13 @@ function Story({ ladder }) {
     <div className="mx-auto grid max-w-3xl gap-16 py-8">
       <header className="grid gap-4">
         <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-          An AI plays Pokémon. <span className="text-muted-foreground">Two more AIs make it better.</span>
+          An AI plays Pokémon. <span className="text-muted-foreground">Another AI makes it better.</span>
         </h1>
         <p className="max-w-prose text-lg text-muted-foreground">
-          A small model plays Gen 1 Pokémon battles. It is never retrained. Instead, other AIs rewrite the instructions and code around it, which is its <i>harness</i>.
+          A small model plays Gen 1 Pokémon battles. It is never retrained. Instead, a coach AI rewrites the instructions, rules and tools around it, which is its <i>harness</i>.
         </p>
         <div className="flex flex-wrap items-center gap-2">
-          {["play games", "coach fixes strategy", "healer fixes code", "test on real opponents"].map((s, i) => (
+          {["play games", "coach rewrites the harness", "keep it only if it wins more", "test on real opponents"].map((s, i) => (
             <span key={s} className="flex items-center gap-2">
               {i > 0 && <span className="text-muted-foreground">→</span>}
               <Badge variant="outline">{s}</Badge>
@@ -110,24 +108,7 @@ function Story({ ladder }) {
       </section>
 
       <section className="grid gap-4">
-        <Label>2 · The healer</Label>
-        <h2 className="text-3xl font-semibold tracking-tight text-balance">It found a bug in our own code that we never noticed.</h2>
-        <p className="max-w-prose text-muted-foreground">
-          A coding agent reads the logs of every game, looking for places where the code, not the strategy, is wrong. When a Pokémon is asleep or frozen, the game offers a “Fight” button, and our code described that button as an attack.
-        </p>
-        <blockquote className="border-l-2 pl-4 text-xl italic">
-          “Fight can finish the weakened opposing Cloyster immediately.”
-          <div className="mt-1 font-mono text-xs not-italic text-muted-foreground">the player, fooled, 194 times across 80 games</div>
-        </blockquote>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Before label="What the player saw"><p className="font-mono">move:fight · type Normal, power 0, accuracy 0.01</p></Before>
-          <After label="After the healer's fix"><p className="font-mono">move:fight · continue the turn without selecting an attack (asleep, frozen, or trapped)</p></After>
-        </div>
-        <p className="text-muted-foreground">It fixed 8 lines, wrote 3 tests, and had to pass a safety check it cannot edit before a human merged it.</p>
-      </section>
-
-      <section className="grid gap-4">
-        <Label>3 · The real test</Label>
+        <Label>2 · The real test</Label>
         <h2 className="text-3xl font-semibold tracking-tight text-balance">Then we tested it where it counts, and it barely moved.</h2>
         <p className="max-w-prose text-muted-foreground">We entered the PokéAgent Challenge (a NeurIPS 2025 benchmark) and played ranked games against opponents we never trained against.</p>
         <Card>
@@ -292,36 +273,6 @@ function Harness({ detail }) {
   )
 }
 
-/* ---------------- Healer ---------------- */
-
-function Healer({ heals }) {
-  if (!heals?.length) return <p className="text-muted-foreground">No healer runs yet.</p>
-  return (
-    <div className="grid gap-4">
-      <p className="max-w-prose text-muted-foreground">
-        The healer is a coding agent (Codex). It reads the app's logs (MongoDB, and Langfuse and Sentry over MCP), finds one real bug in the code, and fixes it on its own git branch.
-        A gate it cannot edit checks which files it touched, the locked guardrails and the tests. A human merges.
-      </p>
-      {heals.map((h) => (
-        <Card key={h.branch}>
-          <CardHeader>
-            <CardTitle className="text-xl">{(h.summary || "").split(". ")[0].replace(/`/g, "")}.</CardTitle>
-            <CardDescription className="flex flex-wrap items-center gap-2">
-              <Badge>passed gate · {h.gate}</Badge>
-              <span>branch {h.branch}</span>·<span>{h.seconds}s</span>·<span>changed {(h.changed || []).join(", ")}</span>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="prose-sm max-w-none text-sm leading-relaxed [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:font-mono [&_code]:text-xs [&_p]:my-3 [&_pre]:overflow-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-3 [&_table]:my-3 [&_table]:w-full [&_td]:border-b [&_td]:p-2 [&_td]:align-top [&_th]:border-b [&_th]:p-2 [&_th]:text-left [&_ul]:list-disc [&_ul]:pl-5">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{h.report}</ReactMarkdown>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  )
-}
-
 /* ---------------- Ladder ---------------- */
 
 function Ladder({ ladder, recent }) {
@@ -471,7 +422,6 @@ export default function Dashboard() {
           <TabsTrigger value="story">Story</TabsTrigger>
           <TabsTrigger value="live">Live</TabsTrigger>
           <TabsTrigger value="harness">Harness</TabsTrigger>
-          <TabsTrigger value="healer">Healer</TabsTrigger>
           <TabsTrigger value="ladder">Ladder</TabsTrigger>
           <TabsTrigger value="atlas">Atlas</TabsTrigger>
         </TabsList>
@@ -479,7 +429,6 @@ export default function Dashboard() {
           <TabsContent value="story"><Story ladder={stats?.ladder} /></TabsContent>
           <TabsContent value="live" className="pt-4"><Live battle={live?.last_battle} /></TabsContent>
           <TabsContent value="harness" className="pt-4"><Harness key={run} detail={detail} /></TabsContent>
-          <TabsContent value="healer" className="pt-4"><Healer heals={stats?.heals} /></TabsContent>
           <TabsContent value="ladder" className="pt-4"><Ladder ladder={stats?.ladder} recent={recent} /></TabsContent>
           <TabsContent value="atlas" className="pt-4"><Atlas atlas={stats?.atlas} feed={data?.feed} search={live?.last_search} pipelines={stats?.pipelines} /></TabsContent>
         </>}
