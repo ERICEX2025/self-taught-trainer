@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Self-Taught Trainer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #FFFDF8; --panel: #FFF9F0; --panel-2: #FBF3E6; --line: #E9D6BC; --ink: #4A4139; --muted: #7D6F62;
+  --tan: #C4A574; --tan-deep: #9A7D4E; --sage: #5F8A68; --sage-soft: #E7EFE3; --brick: #B0645A; --brick-soft: #F6E4DE;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.55 "IBM Plex Sans", system-ui, sans-serif; padding: 0 20px; }
+main { max-width: 820px; margin: 0 auto; padding-block: 56px 72px; display: grid; gap: 72px; }
+h1, h2 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(40px, 7vw, 64px); line-height: 1.05; }
+h1 b, h2 b { font-weight: 400; color: var(--tan-deep); }
+h2 { font-size: clamp(30px, 5vw, 42px); line-height: 1.1; }
+.lede { font-size: 19px; color: var(--muted); max-width: 52ch; margin: 16px 0 0; }
+.step { font: 500 12px "IBM Plex Mono", monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--tan-deep); margin-bottom: 10px; }
+section p { margin: 14px 0 0; max-width: 60ch; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 22px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; min-width: 0; }
+.card .lab { font: 500 11.5px "IBM Plex Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.card.bad { background: var(--brick-soft); border-color: #E8C9C0; }
+.card.good { background: var(--sage-soft); border-color: #C9DBC6; }
+.card.bad .lab { color: var(--brick); } .card.good .lab { color: var(--sage); }
+.mono { font: 14px/1.5 "IBM Plex Mono", monospace; overflow-wrap: anywhere; }
+ul.rules { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 15px; }
+.quote { font: italic 400 22px/1.3 "Instrument Serif", Georgia, serif; margin: 22px 0 0; padding-left: 16px; border-left: 3px solid var(--tan); max-width: 48ch; }
+.quote span { display: block; font: 13px "IBM Plex Mono", monospace; font-style: normal; color: var(--muted); margin-top: 6px; }
+.big { font: 400 clamp(56px, 10vw, 84px)/1 "Instrument Serif", Georgia, serif; color: var(--tan-deep); font-variant-numeric: tabular-nums; }
+.bars { display: grid; gap: 12px; margin-top: 22px; }
+.bar { display: grid; grid-template-columns: 150px 1fr 56px; gap: 12px; align-items: center; font-size: 15px; }
+.bar .track { height: 14px; background: var(--panel-2); border-radius: 7px; overflow: hidden; }
+.bar .fill { height: 100%; background: var(--tan); border-radius: 7px; }
+.bar .fill.hi { background: var(--tan-deep); }
+.bar b { font: 500 15px "IBM Plex Mono", monospace; text-align: right; font-variant-numeric: tabular-nums; }
+.bar .note { grid-column: 2 / 4; font-size: 12.5px; color: var(--muted); margin-top: -8px; }
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 18px; font: 500 13px "IBM Plex Mono", monospace; }
+.flow span { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; }
+.flow i { font-style: normal; color: var(--muted); }
+footer { border-top: 1px solid var(--line); padding-top: 22px; font-size: 14px; color: var(--muted); display: grid; gap: 6px; }
+footer a { color: var(--tan-deep); }
+@media (max-width: 640px) { .pair { grid-template-columns: 1fr; } .bar { grid-template-columns: 96px 1fr 48px; } main { gap: 56px; padding-block: 36px 56px; } }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <h1>An AI plays Pokémon.<br><b>Two more AIs</b> make it better.</h1>
+  <p class="lede">A small model plays Gen 1 Pokémon battles. It is never retrained. Instead, other AIs rewrite the instructions and code around it, which is its <i>harness</i>.</p>
+  <div class="flow"><span>play games</span><i>→</i><span>coach fixes strategy</span><i>→</i><span>healer fixes code</span><i>→</i><span>test on real opponents</span></div>
+</header>
+
+<section>
+  <div class="step">1 · The coach</div>
+  <h2>It read its losses and <b>taught itself the rules</b>.</h2>
+  <p>After every round, a coach AI studies the lost games and suggests one change. A change is kept only if the player then wins more on fresh games. In Run 1, its win rate against the training bot went from <b style="font-weight:600">52% to 71%</b>.</p>
+  <div class="pair">
+    <div class="card bad">
+      <div class="lab">Where it started</div>
+      <div class="mono">“You are playing a turn-based game. Your goal is to win.”</div>
+      <p style="font-size:14px;color:var(--muted)">No rules. Nothing about Pokémon.</p>
+    </div>
+    <div class="card good">
+      <div class="lab">What it learned · Runs 1 and 2</div>
+      <ul class="rules">
+        <li>A Hyper Beam that knocks out skips the recharge turn in Gen 1</li>
+        <li>Freeze is permanent in Gen 1, so press the advantage</li>
+        <li>A foe can only have one status at a time</li>
+        <li>Wrote its own tool: a Victreebel endgame warning</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="step">2 · The healer</div>
+  <h2>It found <b>a bug in our own code</b> that we never noticed.</h2>
+  <p>A coding agent reads the logs of every game, looking for places where the code, not the strategy, is wrong. It found that when a Pokémon is asleep or frozen, the game offers a “Fight” button, and our code described that button as an attack.</p>
+  <blockquote class="quote">“Fight can finish the weakened opposing Cloyster immediately.”<span>the player, fooled, 194 times across 80 games</span></blockquote>
+  <div class="pair">
+    <div class="card bad">
+      <div class="lab">What the player saw</div>
+      <div class="mono">move:fight · type Normal, power 0, accuracy 0.01</div>
+    </div>
+    <div class="card good">
+      <div class="lab">After the healer's fix</div>
+      <div class="mono">move:fight · continue the turn without selecting an attack (asleep, frozen, or trapped)</div>
+    </div>
+  </div>
+  <p>It fixed 8 lines, wrote 3 tests, and had to pass a safety check it cannot edit before a human merged it.</p>
+</section>
+
+<section>
+  <div class="step">3 · The real test</div>
+  <h2>Then we tested it where it counts, and <b>it barely moved</b>.</h2>
+  <p>We entered the PokéAgent Challenge (a NeurIPS 2025 benchmark) and played ranked games against opponents we never trained against.</p>
+  <div class="bars" role="img" aria-label="Win rates: 71 percent against the training bot, 13 percent and 14 percent on the real ladder">
+    <div class="bar"><span>vs training bot</span><div class="track"><div class="fill hi" style="width:71%"></div></div><b>71%</b></div>
+    <div class="bar"><span>ladder · start</span><div class="track"><div class="fill" style="width:13%"></div></div><b>13%</b></div>
+    <div class="bar"><span>ladder · evolved</span><div class="track"><div class="fill" style="width:14%"></div></div><b>14%</b></div>
+    <div class="bar"><span></span><span class="note">Ladder: 20 wins of 156 games (start), 11 of 80 (evolved).</span></div>
+  </div>
+  <p><b style="font-weight:600">What we learned:</b> an AI that improves itself only gets as good as its sparring partners. Our training bots were too easy. Next: train against strong reinforcement-learning agents.</p>
+</section>
+
+<footer>
+  <div>Player: GPT-5.4 mini · Coach: GPT-5.4 and Codex · Memory and logs: MongoDB Atlas with vector search · Traces: Langfuse · Errors: GlitchTip</div>
+  <div>Code: <a href="https://github.com/ERICEX2025/self-taught-trainer">github.com/ERICEX2025/self-taught-trainer</a></div>
+</footer>
+
+</main>
+</body>
+</html>
