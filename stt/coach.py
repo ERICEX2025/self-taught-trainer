@@ -25,6 +25,8 @@ Allowed change kinds:
   write_tool    value: {"name": "snake_case", "description": "what it tells the player",
                          "code": "def tool(state):\\n    ...\\n    return 'short hint'"}
   remove_tool   value: the name of a tool you wrote before
+  edit_tool     value: {"name": "an existing tool's name", "code": "the full revised code", "description": "optional"}
+                (fix or improve a tool you wrote before: e.g. a bug, a wrong assumption, or missing cases)
   set_context   value: {"history_turns": 0-6}   (how many of its own recent choices the player sees)
 
 write_tool: the function runs every turn; its returned text is shown to the player. `state` is a dict:
@@ -130,6 +132,16 @@ def apply_change(cfg: dict, change: dict, new_id: str) -> tuple[dict | None, str
         if err:
             return None, err
         tools.append({"name": name, "description": str(v.get("description", "")), "code": code})
+    elif k == "edit_tool" and isinstance(v, dict) and any(t["name"] == v.get("name") for t in tools):
+        _, err = compile_tool(str(v.get("code", "")))
+        if err:
+            return None, err
+        for t in tools:
+            if t["name"] == v["name"]:
+                t["previous_code"] = t["code"]
+                t["code"] = str(v["code"])
+                if v.get("description"):
+                    t["description"] = str(v["description"])
     elif k == "remove_tool" and any(t["name"] == v for t in tools):
         c["custom_tools"] = [t for t in tools if t["name"] != v]
     elif k == "set_context" and isinstance(v, dict):

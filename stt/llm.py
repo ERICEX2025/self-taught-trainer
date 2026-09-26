@@ -23,7 +23,7 @@ class LLM:
         # Newer reasoning models think before answering; keep that to a minimum for the player.
         self.reasoning = os.environ.get("PLAY_REASONING", "none")
 
-    async def complete(self, system: str, user: str, model: str, max_tokens: int = 120) -> str:
+    async def complete(self, system: str, user: str, model: str, max_tokens: int = 120, usage: dict | None = None) -> str:
         async with self.sem:
             for attempt in range(4):
                 t0 = time.perf_counter()
@@ -45,6 +45,10 @@ class LLM:
                         model=name, max_completion_tokens=max_tokens, **extra,
                         messages=[{"role": "system", "content": system}, {"role": "user", "content": user}])
                     self.seconds += time.perf_counter() - t0
+                    if usage is not None and getattr(r, "usage", None):
+                        usage.update({"input": r.usage.prompt_tokens, "output": r.usage.completion_tokens,
+                                      "total": r.usage.total_tokens})
+                        usage["latency_s"] = round(time.perf_counter() - t0, 3)
                     return r.choices[0].message.content or ""
                 except Exception as e:  # rate limits and transient errors
                     self.errors += 1

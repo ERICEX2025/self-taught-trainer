@@ -11,6 +11,7 @@ import time
 from poke_env import AccountConfiguration, LocalhostServerConfiguration
 from poke_env.player import Player
 
+from . import tracing
 from .adapter import describe, legal_actions
 
 GUARDRAILS = [
@@ -54,6 +55,12 @@ class HarnessPlayer(Player):
         self.invalid = 0
 
     def _battle_finished_callback(self, battle):
+        vid = self.cfg["_id"]
+        tracing.event("battle result", trace_id=tracing.battle_trace_id(battle.battle_tag, vid),
+                      session=self.cfg.get("run", "adhoc"), tags=[vid, "battle"],
+                      output={"won": bool(battle.won), "turns": battle.turn},
+                      metadata={"version": vid, "battle": battle.battle_tag, "opponent": battle.opponent_username,
+                                "invalid_answers": sum(t["invalid"] for t in self.turn_log.get(battle.battle_tag, []))})
         if self.on_finish:
             self.on_finish(self, battle)
 
@@ -83,10 +90,18 @@ class HarnessPlayer(Player):
         if not acts:
             return self.choose_random_move(battle)
         context = self.context_text(battle)
-        text = await self.llm.complete(self.system_text(), context, self.llm.play_model)
+        vid = self.cfg["_id"]
+        usage: dict = {}
+        meta = {"version": vid, "battle": battle.battle_tag, "turn": battle.turn}
+        obs = tracing.start_generation(f"turn {battle.turn} · {vid}", trace_id=tracing.battle_trace_id(battle.battle_tag, vid),
+                                       session=self.cfg.get("run", "adhoc"), tags=[vid, "player"], model=self.llm.play_model,
+                                       input={"system": self.system_text(), "battle": context}, metadata=meta)
+        text = await self.llm.complete(self.system_text(), context, self.llm.play_model, usage=usage)
         m, r = ACTION_RE.search(text or ""), REASON_RE.search(text or "")
         choice = resolve_action(m.group(1), acts) if m else None
         invalid = choice is None
+        tracing.end_generation(obs, output=text, usage={k: v for k, v in usage.items() if k in ("input", "output", "total")},
+                               metadata={**meta, "action": choice, "invalid": invalid, "latency_s": usage.get("latency_s")})
         if invalid:  # guardrail: never send an illegal move
             self.invalid += 1
             choice = random.choice(list(acts))

@@ -25,6 +25,7 @@ from .harness import EDITABLE, v1  # noqa: E402
 from .llm import LLM  # noqa: E402
 from .store import Store  # noqa: E402
 from .tools import load_tools  # noqa: E402
+from . import tracing  # noqa: E402
 
 LIVE: dict = {"phase": "starting", "progress": {}, "versions": [], "reflections": [], "last_battle": None}
 
@@ -130,6 +131,9 @@ async def main(a):
         lessons = store.search_lessons(loss_text, k=3) if store.lessons.count_documents({"archived": False}) else []
         write_live(last_search=store.last_search)
         ev = "\n\n".join(x for x in (evidence_for(docs), LADDER_TEXT) if x)
+        cobs = tracing.start_generation(f"coach · {run} gen {g}", trace_id=None, session=run, tags=["coach", a.coach],
+                                        model=llm.coach_model if a.coach == "api" else "codex", input={"parent": best["_id"]},
+                                        metadata={"generation": g, "parent": best["_id"], "coach": a.coach})
         cands, scripts = [], []
         if a.coach == "codex":
             from . import coach_codex
@@ -159,6 +163,8 @@ async def main(a):
                 versions_to_test.append(cand)
             else:
                 tried.append(c)
+        tracing.end_generation(cobs, output={"candidates": [{"kind": c.get("kind"), "rationale": c.get("rationale")} for c in cands]},
+                               metadata={"generation": g, "n_candidates": len(cands), "analysis_scripts": len(scripts)})
         reflections.append(ref)
         store.save_reflection(ref)
         print(f"gen {g}: coach proposed {len(cands)}, {len(versions_to_test)} valid", flush=True)
@@ -224,6 +230,7 @@ async def main(a):
         write_live(phase="decide", versions=versions(), reflections=reflections, best=best["_id"])
 
     write_live(phase="finished", versions=versions(), reflections=reflections, best=best["_id"])
+    tracing.flush()
     print(f"done. best {best['_id']} at {best['score']:.0%} | rules {best['rules']} | "
           f"tools {[t['name'] for t in best.get('custom_tools', [])]} | "
           f"{llm.calls} model calls, {llm.errors} errors", flush=True)
