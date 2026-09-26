@@ -339,11 +339,27 @@ function Live({ battle, versions }) {
         <CardContent>
           {replay ? <iframe ref={frame} src={replay} title="Pokémon Showdown replay" scrolling="no" className="h-[492px] w-full rounded-md border bg-white" />
             : <p className="text-muted-foreground">No replay saved for this battle.</p>}
-          <div className="mt-4 grid gap-2">
-            <div className="flex items-baseline justify-between gap-2">
-              <Label>Every turn</Label>
-              <span className="text-xs text-muted-foreground">click a turn to jump the viewer there</span>
-            </div>
+        </CardContent>
+      </Card>
+      <div className="grid min-w-0 content-start gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Why it chose · turn {t?.turn}</CardTitle>
+            <CardDescription>Its reason, and the hint a coach-written tool gave it. Follows the viewer as it plays.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3">
+            <p className="text-lg">“{t?.reason}”</p>
+            <p className="font-mono text-sm">→ chose {(t?.action || "").replace(/^(move|switch):/, (m) => (m === "switch:" ? "switch to " : ""))}</p>
+            <Separator />
+            <AgentView t={t} cfg={cfg} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Every turn</CardTitle>
+            <CardDescription>Click a turn to jump the viewer there</CardDescription>
+          </CardHeader>
+          <CardContent>
             <ScrollArea className="h-[300px] pr-3">
               <div className="grid gap-1">
                 {turns.map((x, i) => (
@@ -359,20 +375,6 @@ function Live({ battle, versions }) {
                 ))}
               </div>
             </ScrollArea>
-          </div>
-        </CardContent>
-      </Card>
-      <div className="grid min-w-0 content-start gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Why it chose · turn {t?.turn}</CardTitle>
-            <CardDescription>Its reason, and the hint a coach-written tool gave it. Follows the viewer as it plays.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3">
-            <p className="text-lg">“{t?.reason}”</p>
-            <p className="font-mono text-sm">→ chose {(t?.action || "").replace(/^(move|switch):/, (m) => (m === "switch:" ? "switch to " : ""))}</p>
-            <Separator />
-            <AgentView t={t} cfg={cfg} />
           </CardContent>
         </Card>
       </div>
