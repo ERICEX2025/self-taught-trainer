@@ -185,6 +185,102 @@ function Story({ ladder }) {
   )
 }
 
+/* ---------------- What the agent sees ---------------- */
+
+const STATUS = { frz: "frozen", par: "paralyzed", slp: "asleep", brn: "burned", psn: "poisoned", tox: "badly poisoned", fnt: "fainted" }
+
+function parseContext(text) {
+  const out = { me: null, opp: null, bench: [], seen: [], actions: [], other: [] }
+  const mon = (str) => {
+    const m = str.match(/^(\S+) \(([^)]*)\), HP (\d+)%(?:, (\w+))?/)
+    return m ? { name: m[1], types: m[2], hp: +m[3], status: m[4] } : null
+  }
+  const list = (str) => [...str.matchAll(/([a-z][\w-]*) (fainted|\d+%)((?:, (?:frz|par|slp|brn|psn|tox|fnt))*)/g)]
+    .map((m) => ({ name: m[1], hp: m[2] === "fainted" ? 0 : parseInt(m[2]), status: (m[3].match(/\w+/g) || []).filter((x) => x !== "fnt")[0], fainted: m[2] === "fainted" || m[3].includes("fnt") }))
+  let inActions = false
+  for (const line of (text || "").split("\n")) {
+    if (/^Turn \d+\.?$/.test(line.trim())) continue
+    if (line.startsWith("Your active: ")) { out.me = mon(line.slice(13)); continue }
+    if (line.startsWith("Opponent active: ")) { out.opp = mon(line.slice(17)); continue }
+    if (line.startsWith("Your bench: ")) { out.bench = list(line.slice(12)); continue }
+    if (line.startsWith("Opponent Pokémon seen: ")) { out.seen = list(line.slice(23)); continue }
+    if (line.startsWith("Legal actions:")) { inActions = true; continue }
+    const a = inActions && line.match(/^\s+(\S+)\s+(.*)$/)
+    if (a) { out.actions.push({ id: a[1], desc: a[2] }); continue }
+    if (line.trim()) { inActions = false; out.other.push(line) }
+  }
+  return out
+}
+
+function MonCard({ who, m }) {
+  if (!m) return null
+  return (
+    <div className="grid content-start gap-1.5 rounded-lg border p-3">
+      <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{who}</div>
+      <div className="flex flex-wrap items-baseline gap-2">
+        <span className="text-lg font-semibold capitalize">{m.name}</span>
+        <span className="text-xs text-muted-foreground">{m.types}</span>
+        {m.status && <Badge variant="secondary">{STATUS[m.status] || m.status}</Badge>}
+      </div>
+      <div className="grid grid-cols-[1fr_40px] items-center gap-2">
+        <Progress value={m.hp} />
+        <span className="text-right font-mono text-xs tabular-nums">{m.hp}%</span>
+      </div>
+    </div>
+  )
+}
+
+function Chips({ items }) {
+  return (
+    <div className="flex flex-wrap gap-1">
+      {items.map((p, i) => (
+        <Badge key={i} variant="outline" className={p.fainted ? "line-through opacity-50" : ""}>
+          <span className="capitalize">{p.name}</span>{!p.fainted && <> {p.hp}%</>}{p.status && !p.fainted && <> · {STATUS[p.status] || p.status}</>}
+        </Badge>
+      ))}
+    </div>
+  )
+}
+
+function AgentView({ t }) {
+  const c = useMemo(() => parseContext(t?.context), [t])
+  if (!t) return null
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <MonCard who="Its Pokémon" m={c.me} />
+        <MonCard who="Opponent" m={c.opp} />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid content-start gap-1.5"><Label>Its bench</Label><Chips items={c.bench} /></div>
+        <div className="grid content-start gap-1.5"><Label>Opponents it has seen</Label><Chips items={c.seen} /></div>
+      </div>
+      <div className="grid gap-1.5">
+        <Label>Its options this turn</Label>
+        <div className="grid gap-1">
+          {c.actions.map((a) => {
+            const chosen = a.id === t.action
+            return (
+              <div key={a.id} className={`grid grid-cols-[minmax(0,150px)_1fr_auto] items-center gap-2 rounded-md px-2 py-1 text-sm ${chosen ? "bg-primary/10 ring-1 ring-primary/40" : ""}`}>
+                <span className={`truncate font-mono ${chosen ? "font-semibold" : ""}`}>{a.id.replace(/^(move|switch):/, (m) => (m === "switch:" ? "↔ " : ""))}</span>
+                <span className="truncate text-xs text-muted-foreground">{a.desc.replace(/^\(|\)$/g, "")}</span>
+                {chosen ? <Badge>chose</Badge> : <span />}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+      {c.other.length > 0 && (
+        <div className="grid gap-1.5"><Label>Also in its prompt</Label><pre className="overflow-auto rounded-md bg-muted p-2 font-mono text-xs whitespace-pre-wrap">{c.other.join("\n")}</pre></div>
+      )}
+      <details>
+        <summary className="cursor-pointer text-xs text-muted-foreground">Exact text it received</summary>
+        <pre className="mt-2 max-h-[240px] overflow-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap">{t.context}</pre>
+      </details>
+    </div>
+  )
+}
+
 /* ---------------- Live ---------------- */
 
 function Live({ battle }) {
@@ -208,8 +304,13 @@ function Live({ battle }) {
     return () => clearInterval(id)
   }, [turns])
 
+  // Scroll only the turn list (scrollIntoView would also scroll the page while the replay plays).
   useEffect(() => {
-    if (sel != null) rows.current[sel]?.scrollIntoView({ block: "nearest" })
+    const el = sel != null && rows.current[sel]
+    const vp = el && el.closest('[data-slot="scroll-area-viewport"]')
+    if (!vp) return
+    const r = el.getBoundingClientRect(), v = vp.getBoundingClientRect()
+    if (r.top < v.top || r.bottom > v.bottom) vp.scrollTo({ top: vp.scrollTop + (r.top - v.top) - v.height / 2 + r.height / 2, behavior: "smooth" })
   }, [sel])
 
   // Clicking a turn in the list moves the viewer to that turn.
@@ -241,16 +342,13 @@ function Live({ battle }) {
       <div className="grid min-w-0 content-start gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>The player's mind · turn {t?.turn}</CardTitle>
-            <CardDescription>Follows the viewer: press Play or Next turn and this updates</CardDescription>
+            <CardTitle>What the player sees · turn {t?.turn}</CardTitle>
+            <CardDescription>Its reason, then the exact situation it was given. Follows the viewer as it plays.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             <p className="text-lg">“{t?.reason}”</p>
-            <p className="font-mono text-sm">→ {t?.action} {t?.invalid && <Badge variant="destructive">invalid</Badge>}</p>
-            <details>
-              <summary className="cursor-pointer text-sm text-muted-foreground">What it saw</summary>
-              <pre className="mt-2 max-h-[240px] overflow-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap">{t?.context}</pre>
-            </details>
+            <Separator />
+            <AgentView t={t} />
           </CardContent>
         </Card>
         <Card>
@@ -259,7 +357,7 @@ function Live({ battle }) {
             <CardDescription>Click a turn to jump the viewer there</CardDescription>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[330px] pr-3">
+            <ScrollArea className="h-[260px] pr-3">
               <div className="grid gap-1">
                 {turns.map((x, i) => (
                   <button key={i} ref={(el) => { rows.current[i] = el }} onClick={() => pick(i)}
