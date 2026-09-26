@@ -153,7 +153,20 @@ function Live({ battle }) {
   const [sel, setSel] = useState(null)
   const t = turns[sel ?? Math.max(0, turns.length - 1)]
   if (!battle) return <p className="text-muted-foreground">No battle yet.</p>
+  const replay = battle.replay ? `/api/replay?file=${encodeURIComponent(battle.replay.split("/").pop())}` : null
   return (
+    <div className="grid gap-4">
+    {replay && (
+      <Card>
+        <CardHeader>
+          <CardTitle>Watch the battle</CardTitle>
+          <CardDescription>The real Pokémon Showdown viewer, replaying a game our player just played. Use its controls to step through turns.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <iframe src={replay} title="Pokémon Showdown replay" className="h-[560px] w-full rounded-md border bg-white" />
+        </CardContent>
+      </Card>
+    )}
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
       <Card>
         <CardHeader>
@@ -197,6 +210,7 @@ function Live({ battle }) {
           </div>
         </CardContent>
       </Card>
+    </div>
     </div>
   )
 }
