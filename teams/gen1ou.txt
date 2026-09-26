@@ -1,0 +1,35 @@
+Alakazam
+- Psychic
+- Seismic Toss
+- Thunder Wave
+- Recover
+
+Cloyster
+- Blizzard
+- Clamp
+- Explosion
+- Rest
+
+Victreebel
+- Razor Leaf
+- Wrap
+- Stun Spore
+- Hyper Beam
+
+Chansey
+- Ice Beam
+- Thunderbolt
+- Thunder Wave
+- Soft-Boiled
+
+Snorlax
+- Body Slam
+- Reflect
+- Rest
+- Earthquake
+
+Tauros
+- Body Slam
+- Hyper Beam
+- Blizzard
+- Earthquake
