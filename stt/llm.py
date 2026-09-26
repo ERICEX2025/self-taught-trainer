@@ -10,7 +10,7 @@ class LLM:
     def __init__(self, play_model: str | None = None, coach_model: str | None = None, concurrency: int = 8):
         self.client = AsyncOpenAI()
         self.play_model = play_model or os.environ.get("PLAY_MODEL", "gpt-5.4-mini")
-        self.coach_model = coach_model or os.environ.get("COACH_MODEL", "gpt-4.1")
+        self.coach_model = coach_model or os.environ.get("COACH_MODEL", "gpt-5.4")
         self.sem = asyncio.Semaphore(concurrency)
         self.calls = self.errors = 0
         self.seconds = 0.0
