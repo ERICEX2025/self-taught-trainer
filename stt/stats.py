@@ -53,7 +53,8 @@ def snapshot(st: Store) -> dict:
             r["saw"].pop("prompt", None)
         kept = [v for v in vs if v.get("status") in ("baseline", "promoted")]
         detail[run] = {"versions": vs, "reflections": refs, "best": kept[-1]["_id"] if kept else None}
-    return {"at": time.time(), "ladder": ladder, "runs": runs, "atlas": st.stats(), "discoveries": disc, "run_detail": detail,
+    heals = list(st.db.heals.find({"passed_gate": True}, {"_id": 0}).sort("at", -1).limit(5))
+    return {"at": time.time(), "heals": heals, "ladder": ladder, "runs": runs, "atlas": st.stats(), "discoveries": disc, "run_detail": detail,
             "pipelines": {"ladder_by_family": LADDER_BY_FAMILY, "run_by_version": RUN_BY_VERSION}}
 
 

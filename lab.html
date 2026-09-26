@@ -139,6 +139,25 @@ svg text { font-family: "IBM Plex Mono", monospace; }
 .hit .sv { font: 12px "IBM Plex Mono", monospace; text-align: right; }
 .q { font: 12px/1.5 "IBM Plex Mono", monospace; background: var(--panel-2); border-radius: 6px; padding: 8px 10px; color: var(--muted); max-height: 80px; overflow: auto; }
 @media (max-width: 980px) { .two, .half, .ladders { grid-template-columns: 1fr; } .anatomy { grid-template-columns: 1fr; grid-template-areas: "model" "prompt" "rules" "tools" "context" "memory" "guard" "adapter"; } .colls { grid-template-columns: 1fr 1fr; } }
+.ov-intro { font: 400 30px/1.25 "Instrument Serif", Georgia, serif; max-width: 42ch; text-wrap: balance; margin-top: 18px; }
+.ov-intro b { font-weight: 400; color: var(--tan-deep); }
+.ov { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.ov .panel { gap: 12px; }
+.ov .who { font: 600 11.5px "IBM Plex Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.ov .does { font: 400 22px/1.25 "Instrument Serif", Georgia, serif; }
+.ov .num { font: 400 44px/1 "Instrument Serif", Georgia, serif; color: var(--tan-deep); font-variant-numeric: tabular-nums; }
+.ov .num small { display: block; margin-top: 6px; font: 13px "IBM Plex Mono", monospace; color: var(--muted); }
+.ov ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14.5px; }
+.ov .honest { font-size: 13px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
+.ov .go { align-self: flex-start; }
+.heal-report { white-space: pre-wrap; font: 13.5px/1.6 "IBM Plex Sans", system-ui, sans-serif; max-width: 90ch; }
+.heal-report code, .heal-report pre { font: 12.5px "IBM Plex Mono", monospace; background: var(--panel-2); border-radius: 4px; padding: 1px 4px; }
+.heal-report pre { padding: 8px 10px; overflow-x: auto; white-space: pre; }
+.ht { border-collapse: collapse; white-space: normal; font-size: 13px; margin: 4px 0; display: block; overflow-x: auto; }
+.ht th, .ht td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+.ht th { font: 600 11px "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.gate { display: inline-block; font: 600 11px "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; background: var(--sage-soft); color: var(--sage); border-radius: 999px; padding: 3px 10px; }
+@media (max-width: 980px) { .ov { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -149,10 +168,12 @@ svg text { font-family: "IBM Plex Mono", monospace; }
   <div class="stat"><span>generation</span><b id="gen">–</b></div>
   <div class="stat"><span>best version</span><b id="best">–</b></div>
 </div>
-<div class="narrator" id="narrator" aria-live="polite">Waiting for the loop…</div>
+<div class="narrator" id="narrator" aria-live="polite" hidden>Waiting for the loop…</div>
 
 <nav class="tabs" role="tablist">
-  <button role="tab" data-tab="disc" aria-selected="true">Discoveries</button>
+  <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
+  <button role="tab" data-tab="disc" aria-selected="false">Discoveries</button>
+  <button role="tab" data-tab="healer" aria-selected="false">Healer</button>
   <button role="tab" data-tab="live" aria-selected="false">Live</button>
   <button role="tab" data-tab="harness" aria-selected="false">Harness</button>
   <button role="tab" data-tab="evolution" aria-selected="false">Evolution</button>
@@ -160,7 +181,57 @@ svg text { font-family: "IBM Plex Mono", monospace; }
   <button role="tab" data-tab="atlas" aria-selected="false">Atlas</button>
 </nav>
 
-<div class="pane" data-pane="disc">
+<div class="pane" data-pane="overview">
+  <p class="ov-intro">An AI plays Pokémon battles. <b>Two other AIs</b> watch it play and make it better: one improves its strategy, one fixes its code. A real benchmark keeps us honest.</p>
+  <div class="ov">
+    <section class="panel">
+      <div class="who">1 · The coach improves strategy</div>
+      <div class="does">After each round it reads the lost games, proposes changes to the player's rules and tools, and keeps one only if it wins more.</div>
+      <div class="num">52% → 71% <small>Run 1, in-run win rate vs the training bot · Run 2 reached 80% (from 67%)</small></div>
+      <ul>
+        <li>Learned: a Hyper Beam that knocks out skips the recharge turn in Gen 1</li>
+        <li>Learned: freeze is permanent in Gen 1, so press the advantage</li>
+        <li>Wrote its own tool: a Victreebel endgame warning</li>
+      </ul>
+      <div class="honest">Honest check: re-tested on 60 fresh games, the best versions scored 63–67% vs 57% for the start. Some of the 80% was luck.</div>
+      <button class="b go" data-jump="disc">See what it learned →</button>
+    </section>
+    <section class="panel">
+      <div class="who">2 · The healer fixes code</div>
+      <div class="does">A coding agent (Codex) reads the app's own logs, finds a bug in our code, fixes it on a branch, and must pass tests it can't edit.</div>
+      <div class="num">194 <small>turns the player was misled</small></div>
+      <ul>
+        <li>Found: our code showed the game's "Fight" button (asleep, frozen) as an attack with power 0</li>
+        <li>The player kept trying to "finish off" enemies with it</li>
+        <li>Fixed 8 lines, wrote 3 tests, passed the gate. Nobody on the team had noticed.</li>
+      </ul>
+      <div class="honest">Not yet measured in games; the fix is proven by tests only.</div>
+      <button class="b go" data-jump="healer">Read the healer's report →</button>
+    </section>
+    <section class="panel">
+      <div class="who">3 · The real test</div>
+      <div class="does">We entered the PokéAgent Challenge ladder (NeurIPS 2025), playing ranked Gen 1 games against opponents we never trained on.</div>
+      <div class="num">13% → 14% <small>win rate, start vs evolved</small></div>
+      <ul>
+        <li>Start: 20 wins of 156 games</li>
+        <li>Evolved: 11 wins of 80 games</li>
+        <li>Training bots were too easy; strong opponents (RL agents) are the next step</li>
+      </ul>
+      <div class="honest">Self-improvement against weak bots barely moved the real ladder. That's the most important finding.</div>
+      <button class="b go" data-jump="ladder">See the ladder →</button>
+    </section>
+  </div>
+</div>
+
+<div class="pane" data-pane="healer" hidden>
+  <section class="panel" style="margin-top:14px">
+    <div class="ph"><h2>The healer · a coding agent that fixes this app</h2><div class="meta" id="hmeta"></div></div>
+    <div class="small">Loop: read the app's logs (MongoDB, Langfuse and Sentry over MCP) → find one real bug in the code → fix it on its own git branch → a gate it cannot edit checks the files it touched, the locked guardrails and the tests → a human merges.</div>
+    <div id="heals"><div class="empty">No healer runs yet.</div></div>
+  </section>
+</div>
+
+<div class="pane" data-pane="disc" hidden>
   <div id="discs" class="grid"><div class="empty">Nothing kept yet.</div></div>
 </div>
 
@@ -245,10 +316,15 @@ svg text { font-family: "IBM Plex Mono", monospace; }
   function pct(x) { return x == null ? "–" : Math.round(x * 100) + "%"; }
   function getJSON(u) { return fetch(u + "?" + Date.now()).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
 
+  document.addEventListener("click", function (e) {
+    var j = e.target.closest("button[data-jump]"); if (!j) return;
+    var t = document.querySelector('.tabs button[data-tab="' + j.getAttribute("data-jump") + '"]'); if (t) t.click(); window.scrollTo(0, 0);
+  });
   document.querySelector(".tabs").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-tab]"); if (!b) return;
     document.querySelectorAll(".tabs button").forEach(function (x) { x.setAttribute("aria-selected", x === b); });
     document.querySelectorAll(".pane").forEach(function (p) { p.hidden = p.getAttribute("data-pane") !== b.getAttribute("data-tab"); });
+    document.getElementById("narrator").hidden = ["live", "harness", "evolution"].indexOf(b.getAttribute("data-tab")) < 0;
   });
 
   function describe(c) {
@@ -290,7 +366,8 @@ svg text { font-family: "IBM Plex Mono", monospace; }
     else if (L.phase === "decide" && last && last.result) html = last.result.kept ? "Kept: the coach " + describe((last.candidates.filter(function (c) { return c.id === last.result.top; })[0] || {}).change) + "." : "Nothing beat the current best clearly enough, so nothing was kept.";
     else if (L.phase === "finished") {
       var kept = chain.slice(1).map(function (v) { return describe(v.change); });
-      html = "Done. The harness went from " + pct(chain[0] && chain[0].score) + " to " + pct(best && best.score) + " on its own." + (kept.length ? " What stuck: it " + kept.join("; then it ") + "." : "");
+      html = !kept.length ? "Done. The coach tried " + (L.reflections || []).reduce(function (n, r) { return n + ((r.candidates || []).length); }, 0) + " ideas; none beat " + pct(chain[0] && chain[0].score) + " clearly enough, so the harness stayed the same (that's the safety rule working)."
+        : "Done. The harness went from " + pct(chain[0] && chain[0].score) + " to " + pct(best && best.score) + " on its own." + (kept.length ? " What stuck: it " + kept.join("; then it ") + "." : "");
     } else html = "Playing." + p;
     document.getElementById("narrator").innerHTML = html;
   }
@@ -328,7 +405,7 @@ svg text { font-family: "IBM Plex Mono", monospace; }
     var ids = chain.map(function (v) { return v._id; });
     if (!picked || !byId[selV]) selV = ids[ids.length - 1];
     document.getElementById("scrub").innerHTML = chain.map(function (v) {
-      return '<button class="b' + (v._id === selV ? " sel" : "") + '" data-v="' + esc(v._id) + '">' + esc(v._id.split(".").pop()) + " · " + pct(v.score) + "</button>";
+      return '<button class="b' + (v._id === selV ? " sel" : "") + '" data-v="' + esc(v._id) + '">' + esc(v._id.split(".").pop()) + (v.started_from ? " = " + esc(v.started_from) : "") + " · " + pct(v.score) + "</button>";
     }).join('<span class="arrow">›</span>') + ' <span class="small">(the kept versions; rejected ideas are in the coach log)</span>';
     var v = byId[selV], par = v.parent ? byId[v.parent] : null;
     var ch = {}; if (par) {
@@ -337,7 +414,8 @@ svg text { font-family: "IBM Plex Mono", monospace; }
       if (JSON.stringify(v.custom_tools || []) !== JSON.stringify(par.custom_tools || [])) ch.tools = 1;
       if (JSON.stringify(v.context) !== JSON.stringify(par.context)) ch.context = 1;
     }
-    document.getElementById("why").innerHTML = par ? "The coach " + describe(v.change) + ". Its reason: " + esc(v.change && v.change.rationale) : "The starting point: one generic sentence, no rules, no tools, nothing about Pokémon strategy.";
+    document.getElementById("why").innerHTML = par ? "The coach " + describe(v.change) + ". Its reason: " + esc(v.change && v.change.rationale) : v.started_from ? "The starting point: a copy of <b>" + esc(v.started_from) + "</b>, the best version from an earlier run, with the rules and tool it already learned. This run tests whether it can keep improving from there."
+      : "The starting point: one generic sentence, no rules, no tools, nothing about Pokémon strategy.";
     var prules = par ? par.rules : [];
     function part(key, cls, title, body, extra) { return '<div class="part ' + cls + (ch[key] ? " changed" : "") + (extra || "") + '"><h3>' + title + "</h3>" + body + "</div>"; }
     var tools = (v.custom_tools || []).map(function (t) { return '<details class="code"><summary>' + esc(t.name) + " — " + esc(t.description) + '</summary><pre class="code">' + esc(t.code) + "</pre></details>"; }).join("");
@@ -424,6 +502,29 @@ svg text { font-family: "IBM Plex Mono", monospace; }
     }).join("");
   }
 
+  function md(t) {
+    var parts = String(t || "").split("```");
+    return parts.map(function (p, i) {
+      if (i % 2) return "<pre>" + esc(p.replace(/^[a-z]*\n/, "")) + "</pre>";
+      p = p.replace(/(^|\n)(\|[^\n]*\|(\n|$))+/g, function (tb) {
+        var rows = tb.trim().split("\n").filter(function (r) { return !/^\|[\s|:-]+\|$/.test(r); });
+        return "\n\u0000T" + rows.map(function (r, i) { var c = r.replace(/^\||\|$/g, "").split("|"); return c.map(function (x) { return x.trim(); }).join("\u0001"); }).join("\u0002") + "\u0000\n";
+      });
+      return esc(p).replace(/\u0000T([^\u0000]*)\u0000/g, function (m, t) {
+        return '<table class="ht">' + t.split("\u0002").map(function (r, i) { var tag = i ? "td" : "th"; return "<tr>" + r.split("\u0001").map(function (c) { return "<" + tag + ">" + c + "</" + tag + ">"; }).join("") + "</tr>"; }).join("") + "</table>";
+      }).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/\n{3,}/g, "\n\n");
+    }).join("");
+  }
+  function renderHeals(st) {
+    var hs = (st && st.heals) || [];
+    if (!hs.length) return;
+    document.getElementById("hmeta").textContent = hs.length + " fix" + (hs.length > 1 ? "es" : "") + " passed the gate";
+    document.getElementById("heals").innerHTML = hs.map(function (h) {
+      return '<article class="disc" style="margin-top:10px"><div class="dh"><h2>' + esc((h.summary || "").split(". ")[0].replace(/`/g, "")) + '.</h2><span class="gate">passed gate · ' + esc(h.gate) + '</span></div>' +
+        '<div class="small">run ' + esc(h.run) + " · branch " + esc(h.branch) + " · " + h.seconds + " s · read: " + esc((h.mcp || []).length ? h.mcp.join(", ") + " via MCP" : "battle logs from MongoDB") + " · changed " + esc((h.changed || []).join(", ")) + "</div>" +
+        '<div class="heal-report">' + md(h.report) + "</div></article>";
+    }).join("");
+  }
   /* discoveries */
   function turnLine(l) {
     var m = l.match(/^t(\d+)\s+(\S+?)\((\d+)%\)\s+vs\s+(\S+?)\((\d+)%(?:, (\w+))?\)\s+->\s+(\S+)\s*\|\s*reason:\s*(.*)$/);
@@ -447,11 +548,11 @@ svg text { font-family: "IBM Plex Mono", monospace; }
     }).join("");
   }
 
-  var picked = null;
+  var picked = new URLSearchParams(location.search).get("run");
   document.getElementById("runpick").addEventListener("change", function () { picked = this.value; draw(); });
   function view() {
     var L = S.live || {}, det = (S.stats && S.stats.run_detail) || {};
-    var run = picked || L.run || Object.keys(det).slice(-1)[0];
+    var run = picked || (L.phase === "finished" && det.r2 ? "r2" : L.run) || Object.keys(det).slice(-1)[0];  // demo default: Run 2, the clearest story
     var d = det[run];
     if (!d) return L;
     var isLive = L.run === run;
@@ -471,7 +572,7 @@ svg text { font-family: "IBM Plex Mono", monospace; }
   function tick() {
     Promise.all([getJSON("live.json"), getJSON("stats.json"), getJSON("feed.json")]).then(function (r) {
       if (r[0]) { S.live = r[0]; if (S.live.last_battle && S.live.last_battle.tag !== shownTag && (!shownTag || Date.now() - shownAt > 45000)) showBattle(S.live.last_battle); }
-      if (r[1]) { S.stats = r[1]; renderLadder(S.stats); renderDiscoveries(S.stats); }
+      if (r[1]) { S.stats = r[1]; renderLadder(S.stats); renderDiscoveries(S.stats); renderHeals(S.stats); }
       draw();
       renderAtlas(S.stats, S.live);
       if (r[2]) renderFeed(r[2]);
