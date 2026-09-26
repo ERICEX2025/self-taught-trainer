@@ -267,30 +267,6 @@ function AgentView({ t, cfg }) {
           <ul className="grid list-disc gap-1 pl-4 text-sm text-muted-foreground">{rules.map((r) => <li key={r}>{r}</li>)}</ul>
         ) : <p className="text-sm text-muted-foreground">None: this is the starting version.</p>}
       </div>
-      <details className="rounded-lg border p-3">
-        <summary className="cursor-pointer text-sm">
-          The board: <span className="capitalize">{c.me?.name}</span> {c.me?.hp}% vs <span className="capitalize">{c.opp?.name}</span> {c.opp?.hp}% · {c.actions.length} options
-        </summary>
-        <div className="mt-3 grid gap-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <MonCard who="Its Pokémon" m={c.me} />
-            <MonCard who="Opponent" m={c.opp} />
-          </div>
-          <div className="grid gap-1">
-            {c.actions.map((a) => {
-              const chosen = a.id === t.action
-              return (
-                <div key={a.id} className={`grid grid-cols-[minmax(0,150px)_1fr_auto] items-center gap-2 rounded-md px-2 py-1 text-sm ${chosen ? "bg-primary/10 ring-1 ring-primary/40" : ""}`}>
-                  <span className={`truncate font-mono ${chosen ? "font-semibold" : ""}`}>{a.id.replace(/^(move|switch):/, (m) => (m === "switch:" ? "↔ " : ""))}</span>
-                  <span className="truncate text-xs text-muted-foreground">{a.desc.replace(/^\(|\)$/g, "")}</span>
-                  {chosen ? <Badge>chose</Badge> : <span />}
-                </div>
-              )
-            })}
-          </div>
-          <pre className="max-h-[200px] overflow-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap">{t.context}</pre>
-        </div>
-      </details>
     </div>
   )
 }
