@@ -481,29 +481,14 @@ function WhyKept({ d }) {
   const c = d.change || {}, rt = d.retest || {}, ex = d.examples || {}
   const before = rt.best_avg ?? d.first?.best, after = rt.top_avg ?? d.first?.top
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Why this change was kept</CardTitle>
-        <CardDescription>The mistake it targeted, and its A/B test: without the change (A) vs with it (B)</CardDescription>
-      </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-              <div className="grid content-start gap-2">
-                <Label>The mistake it fixed</Label>
-                <p className="text-sm">{ex.plain || c.rationale}</p>
-                {(ex.lines || []).length > 0 && (
-                  <pre className="overflow-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap">{ex.lines.join("\n")}</pre>
-                )}
-              </div>
-              <div className="grid content-start gap-3">
-                <Label>A/B result · A (before) → B (with the change)</Label>
-                <div className="text-3xl font-semibold tabular-nums">{pct(before)} → {pct(after)}</div>
-                <div className="grid gap-2 text-sm">
-                  <div className="grid grid-cols-[64px_1fr_40px] items-center gap-2"><span className="text-muted-foreground">A</span><Progress value={Math.round((before || 0) * 100)} className="opacity-60" /><span className="text-right font-mono">{pct(before)}</span></div>
-                  <div className="grid grid-cols-[64px_1fr_40px] items-center gap-2"><span>B</span><Progress value={Math.round((after || 0) * 100)} /><span className="text-right font-mono">{pct(after)}</span></div>
-                </div>
-                <p className="text-xs text-muted-foreground">Average of the first test and the head-to-head re-test, 60 fresh games each. Small samples, so a few points can be luck.</p>
-              </div>
-            </CardContent>
+    <Card size="sm">
+      <CardContent className="flex flex-wrap items-center gap-x-8 gap-y-3">
+        <div className="shrink-0">
+          <div className="text-3xl font-semibold tabular-nums">{pct(before)} → {pct(after)}</div>
+          <div className="text-xs text-muted-foreground">win rate without → with this change</div>
+        </div>
+        <p className="min-w-[240px] flex-1 text-sm"><span className="text-muted-foreground">Fixes: </span>{ex.plain || c.rationale}</p>
+      </CardContent>
     </Card>
   )
 }
