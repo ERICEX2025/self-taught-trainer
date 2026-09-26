@@ -439,7 +439,6 @@ function Harness({ detail }) {
       </div>
       {!v.parent && <p className="text-muted-foreground">{v.started_from ? <>Starting point: a copy of <b className="text-foreground">{v.started_from}</b>, the best version from an earlier run.</>
           : "Starting point: one generic sentence, no rules, no tools, nothing about Pokémon strategy."}</p>}
-      {v.parent && <p className="text-sm text-muted-foreground">Changes from {short(v.parent)} are marked inside each box: <span className="rounded bg-emerald-500/15 px-1">+ added</span> <span className="rounded bg-destructive/10 px-1 line-through">removed</span></p>}
       <div className="grid gap-3 md:grid-cols-2">
         <Card>
           <CardHeader><CardTitle>Instructions</CardTitle><CardDescription>editable by the coach</CardDescription></CardHeader>
