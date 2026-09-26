@@ -102,6 +102,11 @@ function Story({ ladder }) {
       <section className="grid gap-4">
         <Label>1 · The coach</Label>
         <h2 className="text-3xl font-semibold tracking-tight text-balance">It read its losses and taught itself the rules.</h2>
+        <p className="max-w-prose">
+          <b>Why Gen 1 is a good test:</b> the model already knows a lot about Pokémon, but mostly the modern games. Gen 1 (1996) has different rules: freeze never thaws on its own,
+          Hyper Beam skips its recharge turn after a knockout, and critical hits depend on Speed. Its starting instructions don&apos;t mention Pokémon at all, so everything
+          Gen 1-specific it knows at the end, it had to find in its own losses.
+        </p>
         <p className="max-w-prose text-muted-foreground">
           After every round, a coach AI studies the lost games and suggests one change. A change is kept only if the player then wins more on fresh games.
           In Run 1, its win rate against the training bot went from <b className="text-foreground">52% to 71%</b>.
@@ -288,6 +293,59 @@ function Harness({ detail }) {
   )
 }
 
+/* ---------------- Effects ---------------- */
+
+function Effects({ discoveries, run }) {
+  const all = discoveries || []
+  const list = all.filter((d) => d.run === run)
+  const shown = list.length ? list : all
+  if (!shown.length) return <p className="text-muted-foreground">No kept changes yet.</p>
+  return (
+    <div className="grid gap-4">
+      <p className="max-w-prose text-muted-foreground">
+        Every change the coach kept, with the mistake it was meant to fix and what happened to the win rate. Each change had to win twice:
+        once on 30 fresh games, then again in a head-to-head re-test against the version before it.
+        {!list.length && <> (No kept changes in {run}; showing all runs.)</>}
+      </p>
+      {shown.map((d) => {
+        const c = d.change || {}, rt = d.retest || {}, ex = d.examples || {}
+        const before = rt.best_avg ?? d.first?.best, after = rt.top_avg ?? d.first?.top
+        return (
+          <Card key={d.version}>
+            <CardHeader>
+              <CardDescription className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">{d.run} · gen {d.generation}</Badge>
+                <span className="font-mono">{short(d.parent)} → {short(d.version)}</span>
+              </CardDescription>
+              <CardTitle className="text-lg leading-snug">
+                {c.kind === "write_tool" || c.kind === "edit_tool" ? <>Wrote a tool: <span className="font-mono">{c.value?.name}</span></> : <>“{typeof c.value === "string" ? c.value : describe(c)}”</>}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+              <div className="grid content-start gap-2">
+                <Label>The mistake it fixed</Label>
+                <p className="text-sm">{ex.plain || c.rationale}</p>
+                {(ex.lines || []).length > 0 && (
+                  <pre className="overflow-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap">{ex.lines.join("\n")}</pre>
+                )}
+              </div>
+              <div className="grid content-start gap-3">
+                <Label>Win rate · before → after</Label>
+                <div className="text-3xl font-semibold tabular-nums">{pct(before)} → {pct(after)}</div>
+                <div className="grid gap-2 text-sm">
+                  <div className="grid grid-cols-[64px_1fr_40px] items-center gap-2"><span className="text-muted-foreground">before</span><Progress value={Math.round((before || 0) * 100)} className="opacity-60" /><span className="text-right font-mono">{pct(before)}</span></div>
+                  <div className="grid grid-cols-[64px_1fr_40px] items-center gap-2"><span>after</span><Progress value={Math.round((after || 0) * 100)} /><span className="text-right font-mono">{pct(after)}</span></div>
+                </div>
+                <p className="text-xs text-muted-foreground">Average of the first test and the head-to-head re-test, 30 fresh games each. Small samples, so a few points can be luck.</p>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })}
+    </div>
+  )
+}
+
 /* ---------------- Ladder ---------------- */
 
 function Ladder({ ladder, recent }) {
@@ -343,29 +401,85 @@ function Ladder({ ladder, recent }) {
 
 /* ---------------- Atlas ---------------- */
 
+const COLLECTIONS = [
+  ["harness_versions", "one version of the harness", "_id (r2.v21), parent, rules[], custom_tools[{name, code}], system_prompt, change{kind, value, rationale}, score, status", "the version tree: what changed, and whether it was kept"],
+  ["battles", "one game", "version, opponent, won, turns, log[{turn, action, reason, me, opp, me_hp, opp_hp}], replay", "what the coach reads; win rates come from aggregation pipelines"],
+  ["reflections", "one coach decision", "run, generation, saw{n_battles, n_losses}, candidates[{change, score}], result{kept, retest}", "every idea tried, including the rejected ones"],
+  ["lessons", "one sentence the coach learned", "text, from_version, archived, wealth (+ embedding)", "long-term memory, searched by meaning before each decision"],
+]
+
+const SEARCH_PIPELINE = `db.lessons.aggregate([
+  { $vectorSearch: {
+      index: "lessons_auto",        // Atlas embeds "text" itself (Voyage voyage-4)
+      path: "text",
+      query: "<summary of the latest lost games>",
+      model: "voyage-4",
+      numCandidates: 50, limit: 8,
+      filter: { archived: false } } },
+  { $project: { text: 1, from_version: 1,
+                score: { $meta: "vectorSearchScore" } } }
+])
+// then Voyage rerank-2.5 picks the best 3 for the coach`
+
 function Atlas({ atlas, feed, search, pipelines }) {
   const counts = atlas?.counts || {}
   return (
     <div className="grid gap-4">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {Object.entries(counts).map(([k, n]) => (
-          <Card key={k}>
+          <Card key={k} size="sm">
             <CardHeader><Label>{k}</Label></CardHeader>
             <CardContent className="text-3xl font-semibold tabular-nums">{n.toLocaleString()}</CardContent>
           </Card>
         ))}
       </div>
+
+      <Card>
+        <CardHeader><CardTitle>Data model</CardTitle><CardDescription>MongoDB Atlas · database <span className="font-mono">trainer</span> · everything the system learns is a document</CardDescription></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader><TableRow><TableHead>Collection</TableHead><TableHead>One document is</TableHead><TableHead>Key fields</TableHead><TableHead>Used for</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {COLLECTIONS.map(([name, doc, fields, use]) => (
+                <TableRow key={name}>
+                  <TableCell className="font-mono align-top">{name}</TableCell>
+                  <TableCell className="align-top whitespace-normal">{doc}</TableCell>
+                  <TableCell className="max-w-[380px] align-top font-mono text-xs whitespace-normal">{fields}</TableCell>
+                  <TableCell className="align-top whitespace-normal text-muted-foreground">{use}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>How vector search is used</CardTitle>
+          <CardDescription>The coach's long-term memory · index {atlas?.index} · {atlas?.index_status}</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 lg:grid-cols-2">
+          <ol className="grid list-decimal content-start gap-2 pl-5 text-sm">
+            <li>When a change is kept, its one-sentence lesson is saved to <span className="font-mono">lessons</span>.</li>
+            <li>Atlas turns each lesson into a vector automatically (Automated Embeddings, Voyage <span className="font-mono">voyage-4</span>). We never call an embedding API ourselves.</li>
+            <li>Before each coach decision, we search with a summary of the latest losses. Lessons with a similar <i>meaning</i> come back, even with different words.</li>
+            <li>Voyage <span className="font-mono">rerank-2.5</span> picks the 3 most relevant, and they go into the coach's prompt.</li>
+          </ol>
+          <pre className="overflow-auto rounded-md bg-muted p-3 font-mono text-xs">{SEARCH_PIPELINE}</pre>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-3 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Memory · vector search</CardTitle>
-            <CardDescription>index {atlas?.index} · {atlas?.index_status}</CardDescription>
+            <CardTitle>A real search</CardTitle>
+            <CardDescription>What the coach asked, and the lessons that came back</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-2 text-sm">
             {search ? <>
-              <p className="text-muted-foreground">The coach asked: “{search.query}”</p>
+              <pre className="max-h-32 overflow-auto rounded-md border p-2 font-mono text-xs whitespace-pre-wrap text-muted-foreground">{search.query}</pre>
               {(search.hits || []).map((h, i) => (
-                <div key={i} className="rounded-md bg-muted p-2"><span className="font-mono text-xs text-muted-foreground">{h.from_version} · rerank {h.rerank?.toFixed?.(2)}</span><br />{h.text}</div>
+                <div key={i} className="rounded-md bg-muted p-2"><span className="font-mono text-xs text-muted-foreground">#{i + 1} · learned in {h.from_version} · similarity {h.score?.toFixed?.(2)} · rerank {h.rerank?.toFixed?.(2)}</span><br />{h.text}</div>
               ))}
             </> : <p className="text-muted-foreground">No search yet.</p>}
           </CardContent>
@@ -396,6 +510,7 @@ function Atlas({ atlas, feed, search, pipelines }) {
 export default function Dashboard() {
   const [data, setData] = useState(null)
   const [run, setRun] = useState("r2")
+  const [tab, setTab] = useState("story")
 
   useEffect(() => {
     let alive = true
@@ -432,20 +547,22 @@ export default function Dashboard() {
         )}
       </header>
 
-      <Tabs defaultValue="story">
+      <Tabs value={tab} onValueChange={(v) => { setTab(v); window.scrollTo(0, 0) }}>
         <TabsList variant="line" className="flex-wrap">
           <TabsTrigger value="story">Story</TabsTrigger>
           <TabsTrigger value="live">Live</TabsTrigger>
           <TabsTrigger value="harness">Harness</TabsTrigger>
+          <TabsTrigger value="effects">Effects</TabsTrigger>
           <TabsTrigger value="ladder">Ladder</TabsTrigger>
           <TabsTrigger value="atlas">Atlas</TabsTrigger>
         </TabsList>
         {!data ? <p className="py-10 text-muted-foreground">Loading…</p> : <>
-          <TabsContent value="story"><Story ladder={stats?.ladder} /></TabsContent>
-          <TabsContent value="live" className="pt-4"><Live battle={live?.last_battle} /></TabsContent>
-          <TabsContent value="harness" className="pt-4"><Harness key={run} detail={detail} /></TabsContent>
-          <TabsContent value="ladder" className="pt-4"><Ladder ladder={stats?.ladder} recent={recent} /></TabsContent>
-          <TabsContent value="atlas" className="pt-4"><Atlas atlas={stats?.atlas} feed={data?.feed} search={live?.last_search} pipelines={stats?.pipelines} /></TabsContent>
+          {tab === "story" && <TabsContent value="story"><Story ladder={stats?.ladder} /></TabsContent>}
+          {tab === "live" && <TabsContent value="live" className="pt-4"><Live battle={live?.last_battle} /></TabsContent>}
+          {tab === "harness" && <TabsContent value="harness" className="pt-4"><Harness key={run} detail={detail} /></TabsContent>}
+          {tab === "effects" && <TabsContent value="effects" className="pt-4"><Effects discoveries={stats?.discoveries} run={run} /></TabsContent>}
+          {tab === "ladder" && <TabsContent value="ladder" className="pt-4"><Ladder ladder={stats?.ladder} recent={recent} /></TabsContent>}
+          {tab === "atlas" && <TabsContent value="atlas" className="pt-4"><Atlas atlas={stats?.atlas} feed={data?.feed} search={live?.last_search} pipelines={stats?.pipelines} /></TabsContent>}
         </>}
       </Tabs>
     </main>
