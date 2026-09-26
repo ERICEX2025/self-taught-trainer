@@ -30,7 +30,8 @@ Allowed change kinds:
 write_tool: the function runs every turn; its returned text is shown to the player. `state` is a dict:
 {"turn", "me": {"species","types","hp","fainted","status"}, "opponent": {same}, "my_team": [same...],
 "opponent_seen": [same...], "moves": [{"id","type","power","accuracy","category"}], "switches": [same as me]}.
-Status values look like "par", "slp", "frz", "brn", "psn", or null. Plain Python only: no imports, no double underscores.
+All species, types and move ids are lowercase with no spaces (e.g. "chansey", "psychic", "thunderwave"); compare
+in lowercase. Status values look like "par", "slp", "frz", "brn", "psn", or null. Plain Python only: no imports, no double underscores.
 Keep a tool under ~60 lines. At most 3 written tools in a harness.
 
 Propose 3 or 4 DIFFERENT candidate changes (different kinds or different ideas), each most likely to raise the win rate.
