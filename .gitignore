@@ -9,3 +9,4 @@ feed.json.tmp
 *.log
 report*.json
 .DS_Store
+ladder-*.json
