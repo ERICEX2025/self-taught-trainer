@@ -67,7 +67,13 @@ def evidence_for(docs: list[dict]) -> str:
 
 
 async def play(cfg, llm, n, opponent):
-    return await evaluate(cfg, llm, n, opponent, tools=load_tools(cfg), on_finish=on_finish)
+    """opponent can be one bot, or several joined with '+': battles are split evenly and the
+    score is the overall win rate, so a change must help against all of them to be kept."""
+    opps = opponent.split("+")
+    per = max(1, n // len(opps))
+    parts = await asyncio.gather(*[evaluate(cfg, llm, per, o, tools=load_tools(cfg), on_finish=on_finish) for o in opps])
+    docs = [d for _, ds, _ in parts for d in ds]
+    return sum(d["won"] for d in docs) / max(1, len(docs)), docs, parts[0][2]
 
 
 async def main(a):
