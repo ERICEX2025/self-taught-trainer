@@ -10,3 +10,5 @@ feed.json.tmp
 report*.json
 .DS_Store
 ladder-*.json
+stats.json
+stats.json.tmp

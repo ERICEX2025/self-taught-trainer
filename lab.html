@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Self-Taught Trainer Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Marble palette: cream ground, tan and deep tan accents, sage = working, brick = rolled back */
+:root {
+  --bg: #FFFDF8; --panel: #FFF9F0; --panel-2: #FBF3E6; --line: #E9D6BC; --ink: #4A4139; --muted: #7D6F62; --dim: #B8A99A;
+  --tan: #C4A574; --tan-deep: #9A7D4E; --tan-soft: #F5E6D3; --sage: #5F8A68; --sage-soft: #E7EFE3; --brick: #B0645A; --brick-soft: #F6E4DE;
+  --code-bg: #2E2924; --code-ink: #F3EADF; --code-dim: #B3A596;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); }
+body { margin: 0; color: var(--ink); font: 14px/1.5 "IBM Plex Sans", system-ui, sans-serif; padding: 0 18px 40px; }
+h1, h2 { margin: 0; }
+.mono { font-family: "IBM Plex Mono", monospace; }
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 26px; padding: 14px 0 12px; border-bottom: 1px solid var(--line); }
+.brand h1 { font: 400 30px/1 "Instrument Serif", Georgia, serif; }
+.brand div { font: 12px "IBM Plex Mono", monospace; color: var(--muted); margin-top: 4px; }
+.pipe { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.stage { font: 600 11.5px "IBM Plex Mono", monospace; letter-spacing: .1em; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--line); color: var(--dim); }
+.stage.on { color: var(--bg); background: var(--ink); border-color: var(--ink); }
+.arrow { color: var(--dim); }
+.stat { display: grid; gap: 1px; }
+.stat b { font: 400 26px/1.05 "Instrument Serif", Georgia, serif; font-variant-numeric: tabular-nums; }
+.stat span { font: 11px "IBM Plex Mono", monospace; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.narrator { margin-top: 12px; font: 400 23px/1.35 "Instrument Serif", Georgia, serif; max-width: 80ch; }
+.narrator b { font-weight: 400; color: var(--tan-deep); }
+.narrator .p { font: 500 13px "IBM Plex Mono", monospace; color: var(--muted); white-space: nowrap; }
+.tabs { display: flex; gap: 2px; margin-top: 12px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tabs button { font: 500 12px "IBM Plex Mono", monospace; letter-spacing: .1em; text-transform: uppercase; background: none; border: 0; border-bottom: 2px solid transparent; padding: 10px 14px; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.tabs button[aria-selected="true"] { color: var(--tan-deep); border-bottom-color: var(--tan-deep); }
+.grid { display: grid; gap: 14px; margin-top: 14px; }
+.two { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+.half { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.ph { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.ph h2 { font: 600 11.5px "IBM Plex Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.ph .meta { font: 12px "IBM Plex Mono", monospace; color: var(--muted); }
+button.b { font: 500 12px "IBM Plex Mono", monospace; background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 4px 9px; cursor: pointer; }
+button.b:hover, button.b.sel { border-color: var(--tan-deep); }
+button.b.sel { background: var(--tan-deep); color: var(--bg); }
+button:focus-visible { outline: 2px solid var(--tan-deep); outline-offset: 2px; }
+iframe { width: 100%; height: 470px; border: 0; border-radius: 8px; background: #fff; }
+.empty { color: var(--dim); font: 12px "IBM Plex Mono", monospace; padding: 18px 0; text-align: center; }
+.small { font-size: 12.5px; color: var(--muted); }
+.tag { font: 600 11px "IBM Plex Mono", monospace; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+.tag.win, .tag.kept { background: var(--sage-soft); color: var(--sage); }
+.tag.loss, .tag.rb { background: var(--brick-soft); color: var(--brick); }
+.tag.wait { background: var(--tan-soft); color: var(--tan-deep); }
+/* agent's mind */
+.turns { display: flex; gap: 4px; flex-wrap: wrap; }
+.turns button { padding: 2px 6px; font-size: 11px; }
+.turns button.bad { border-color: var(--brick); }
+.mind { display: grid; gap: 6px; overflow: auto; max-height: 420px; }
+.blk { font: 12px/1.55 "IBM Plex Mono", monospace; white-space: pre-wrap; border-left: 3px solid var(--line); background: var(--panel-2); padding: 7px 10px; border-radius: 0 6px 6px 0; }
+.blk .l { display: block; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+.blk.state { border-color: var(--dim); } .blk.tool { border-color: var(--tan); background: #FAF0DF; } .blk.hist { border-color: var(--tan-deep); }
+.choice { font: 14px/1.5 "IBM Plex Sans", sans-serif; background: var(--sage-soft); padding: 9px 11px; border-radius: 6px; }
+.choice b { font: 600 13px "IBM Plex Mono", monospace; color: var(--sage); }
+.choice.bad { background: var(--brick-soft); } .choice.bad b { color: var(--brick); }
+/* harness anatomy */
+.scrub { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+.scrub .b.rolled_back { border-style: dashed; color: var(--muted); }
+.why { font-size: 13.5px; color: var(--muted); }
+.why b { color: var(--tan-deep); font-family: "IBM Plex Mono", monospace; font-weight: 500; }
+.anatomy { display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-areas: "prompt prompt guard" "rules model tools" "adapter context memory"; gap: 12px; }
+.part { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; display: grid; gap: 6px; align-content: start; }
+.part h3 { margin: 0; font: 600 10.5px "IBM Plex Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.part h3 i { font-style: normal; color: var(--dim); }
+.part.changed { border-color: var(--sage); } .part.changed h3 { color: var(--sage); }
+.part.fixed { opacity: .8; }
+.part ul { margin: 0; padding-left: 16px; font-size: 13px; display: grid; gap: 4px; }
+.part .txt { font: 12.5px/1.55 "IBM Plex Mono", monospace; white-space: pre-wrap; }
+.none { color: var(--dim); font: 12px "IBM Plex Mono", monospace; }
+.p-prompt { grid-area: prompt; } .p-guard { grid-area: guard; } .p-rules { grid-area: rules; } .p-tools { grid-area: tools; }
+.p-adapter { grid-area: adapter; } .p-context { grid-area: context; } .p-memory { grid-area: memory; }
+.p-model { grid-area: model; place-content: center; text-align: center; background: var(--panel); border: 1px solid var(--ink); }
+.p-model b { font: 400 30px "Instrument Serif", Georgia, serif; }
+.new { background: var(--sage-soft); border-radius: 3px; padding: 0 3px; }
+details.code summary { cursor: pointer; font: 12.5px "IBM Plex Mono", monospace; }
+pre.code { margin: 6px 0 0; background: var(--code-bg); color: var(--code-ink); border-radius: 8px; padding: 10px 12px; font: 11.5px/1.55 "IBM Plex Mono", monospace; overflow: auto; max-height: 300px; white-space: pre; }
+/* evolution */
+.gen { border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 10px; }
+.gen:first-child { border-top: 0; padding-top: 0; }
+.gen .h { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font: 400 21px "Instrument Serif", Georgia, serif; }
+.cands { display: grid; gap: 6px; }
+.cand { display: grid; grid-template-columns: 76px 64px minmax(0, 1fr); gap: 10px; align-items: start; background: var(--panel-2); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+.cand.top { outline: 1px solid var(--tan-deep); }
+.cand.keep { outline: 2px solid var(--sage); background: var(--sage-soft); }
+.cand .k { font: 600 11px "IBM Plex Mono", monospace; color: var(--tan-deep); }
+.cand .s { font: 600 15px "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
+.cand .v { word-break: break-word; }
+.cand .r { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+.verdict { font-size: 13.5px; background: var(--panel-2); border-radius: 8px; padding: 8px 10px; }
+svg text { font-family: "IBM Plex Mono", monospace; }
+/* ladder */
+.ladders { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.lad { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 8px; }
+.lad.evo { border-color: var(--tan-deep); }
+.lad .name { font: 600 13px "IBM Plex Mono", monospace; }
+.lad .big { font: 400 40px/1 "Instrument Serif", Georgia, serif; font-variant-numeric: tabular-nums; }
+.fam { display: grid; grid-template-columns: 140px 1fr 70px; gap: 8px; align-items: center; font-size: 13px; }
+.bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; } .bar i { display: block; height: 100%; background: var(--tan-deep); }
+.recent { display: flex; gap: 3px; flex-wrap: wrap; }
+.recent span { width: 12px; height: 12px; border-radius: 3px; background: var(--brick-soft); border: 1px solid var(--brick); }
+.recent span.w { background: var(--sage-soft); border-color: var(--sage); }
+/* atlas */
+.colls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.coll { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; }
+.coll b { font: 400 32px/1.1 "Instrument Serif", Georgia, serif; font-variant-numeric: tabular-nums; }
+.coll .n { font: 600 12px "IBM Plex Mono", monospace; }
+.coll .d { font-size: 12px; color: var(--muted); }
+.feed { display: grid; max-height: 320px; overflow: auto; font: 12px/1.5 "IBM Plex Mono", monospace; }
+.fe { display: grid; grid-template-columns: 66px 56px 140px minmax(0, 1fr); gap: 10px; padding: 4px 0; border-top: 1px solid var(--line); }
+.fe:first-child { border-top: 0; }
+.fe .t { color: var(--dim); } .fe .op { color: var(--sage); } .fe .op.update, .fe .op.replace { color: var(--tan-deep); } .fe .c { color: var(--muted); }
+.fe .w { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hit { display: grid; grid-template-columns: 1fr 60px; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.hit .sv { font: 12px "IBM Plex Mono", monospace; text-align: right; }
+.q { font: 12px/1.5 "IBM Plex Mono", monospace; background: var(--panel-2); border-radius: 6px; padding: 8px 10px; color: var(--muted); max-height: 80px; overflow: auto; }
+@media (max-width: 980px) { .two, .half, .ladders { grid-template-columns: 1fr; } .anatomy { grid-template-columns: 1fr; grid-template-areas: "model" "prompt" "rules" "tools" "context" "memory" "guard" "adapter"; } .colls { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="brand"><h1>Self-Taught Trainer</h1><div id="sub">Gen 1 OU · fixed team · connecting…</div></div>
+  <div class="pipe" id="pipe"></div>
+  <div class="stat"><span>run</span><b id="run">–</b></div>
+  <div class="stat"><span>generation</span><b id="gen">–</b></div>
+  <div class="stat"><span>best version</span><b id="best">–</b></div>
+</div>
+<div class="narrator" id="narrator" aria-live="polite">Waiting for the loop…</div>
+
+<nav class="tabs" role="tablist">
+  <button role="tab" data-tab="live" aria-selected="true">Live</button>
+  <button role="tab" data-tab="harness" aria-selected="false">Harness</button>
+  <button role="tab" data-tab="evolution" aria-selected="false">Evolution</button>
+  <button role="tab" data-tab="ladder" aria-selected="false">Benchmark ladder</button>
+  <button role="tab" data-tab="atlas" aria-selected="false">Atlas</button>
+</nav>
+
+<div class="pane" data-pane="live">
+  <div class="grid two">
+    <section class="panel">
+      <div class="ph"><h2>Latest battle</h2><div class="meta"><span id="bmeta"></span> <button class="b" id="latest">latest</button></div></div>
+      <iframe id="replay" title="Battle replay"></iframe>
+    </section>
+    <section class="panel">
+      <div class="ph"><h2>The player's mind</h2><div class="meta" id="mmeta">what it saw, why it chose</div></div>
+      <div class="turns" id="turns"></div>
+      <div class="mind" id="mind"><div class="empty">No battle finished yet.</div></div>
+    </section>
+  </div>
+</div>
+
+<div class="pane" data-pane="harness" hidden>
+  <section class="panel" style="margin-top:14px">
+    <div class="ph"><h2>The harness, version by version</h2><div class="meta">green = changed in this version</div></div>
+    <div class="scrub" id="scrub"></div>
+    <div class="why" id="why"></div>
+    <div class="anatomy" id="anatomy"></div>
+  </section>
+</div>
+
+<div class="pane" data-pane="evolution" hidden>
+  <div class="grid half">
+    <section class="panel">
+      <div class="ph"><h2>Win rate of the kept versions</h2><div class="meta">vs the local rule bot · fresh battles each generation</div></div>
+      <svg id="chart" viewBox="0 0 560 250" role="img" aria-label="Win rate by generation"></svg>
+    </section>
+    <section class="panel">
+      <div class="ph"><h2>How each change is judged</h2></div>
+      <ol class="small" style="margin:0;padding-left:18px;display:grid;gap:5px">
+        <li>The coach reads the best version's losses (with the player's reasons) and some wins, then proposes 3–4 different changes.</li>
+        <li>Every candidate plays fresh battles <b>at the same time</b> as the current best, so no score is stale.</li>
+        <li>The top candidate re-plays head-to-head against the best, because the best of 4 is usually a bit lucky.</li>
+        <li>Kept only if its average beats the best by a margin. Rejected ideas are shown to the coach so it doesn't repeat them.</li>
+      </ol>
+    </section>
+  </div>
+  <section class="panel" style="margin-top:14px">
+    <div class="ph"><h2>Coach log</h2><div class="meta">newest first</div></div>
+    <div id="gens"><div class="empty">The coach hasn't run yet.</div></div>
+  </section>
+</div>
+
+<div class="pane" data-pane="ladder" hidden>
+  <section class="panel" style="margin-top:14px">
+    <div class="ph"><h2>PokéAgent Challenge ladder · Gen 1 OU</h2><div class="meta">NeurIPS 2025 benchmark · ranked games vs organizer baselines we never trained against</div></div>
+    <div class="ladders" id="ladders"></div>
+    <p class="small">Same model, same team, same format. The only difference between the two agents is the harness. <b>MM-</b> opponents are Metamon RL agents trained on millions of games; <b>BH-</b> are rule-based bots. Counts computed in Atlas with an aggregation pipeline.</p>
+  </section>
+</div>
+
+<div class="pane" data-pane="atlas" hidden>
+  <section class="panel" style="margin-top:14px">
+    <div class="ph"><h2>MongoDB Atlas · Sandbox Cluster0</h2><div class="meta" id="ameta"></div></div>
+    <div class="colls" id="colls"></div>
+  </section>
+  <section class="panel" style="margin-top:14px">
+    <div class="ph"><h2>Live writes · change stream</h2><div class="meta">every insert and update, pushed by Atlas as it happens</div></div>
+    <div class="feed" id="feed"><div class="empty">Waiting for the first write…</div></div>
+  </section>
+  <div class="grid half">
+    <section class="panel">
+      <div class="ph"><h2>Last vector search</h2><div class="meta">the coach recalls lessons before each decision</div></div>
+      <div id="search"><div class="empty">No search yet this run.</div></div>
+    </section>
+    <section class="panel">
+      <div class="ph"><h2>Analysis runs inside Atlas</h2><div class="meta" id="imeta"></div></div>
+      <pre class="code" id="pipes"></pre>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  var S = { live: null, stats: null, feed: [] };
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;"); }
+  function pct(x) { return x == null ? "–" : Math.round(x * 100) + "%"; }
+  function getJSON(u) { return fetch(u + "?" + Date.now()).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
+
+  document.querySelector(".tabs").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-tab]"); if (!b) return;
+    document.querySelectorAll(".tabs button").forEach(function (x) { x.setAttribute("aria-selected", x === b); });
+    document.querySelectorAll(".pane").forEach(function (p) { p.hidden = p.getAttribute("data-pane") !== b.getAttribute("data-tab"); });
+  });
+
+  function describe(c) {
+    if (!c || !c.kind) return "no usable change";
+    var v = c.value;
+    switch (c.kind) {
+      case "add_rule": return "added a rule: <b>“" + esc(v) + "”</b>";
+      case "remove_rule": return "removed a rule";
+      case "edit_prompt": return "rewrote its instructions";
+      case "write_tool": return "wrote its own tool <b>" + esc(v && v.name) + "</b>";
+      case "remove_tool": return "deleted its tool <b>" + esc(v) + "</b>";
+      case "set_context": return "set how many of its own recent moves it sees to <b>" + esc(v && v.history_turns) + "</b>";
+      default: return esc(c.kind);
+    }
+  }
+  function lineage(L) {
+    var vs = L.versions || [], byId = {}; vs.forEach(function (v) { byId[v._id] = v; });
+    var chain = [], cur = byId[L.best]; while (cur) { chain.unshift(cur); cur = byId[cur.parent]; }
+    return chain.length ? chain : vs.filter(function (v) { return v.status === "baseline"; });
+  }
+
+  /* header + narrator */
+  var STAGES = [["play", "PLAY"], ["coach", "COACH"], ["test", "TEST"], ["retest", "RE-TEST"], ["decide", "DECIDE"]];
+  function renderTop(L) {
+    document.getElementById("pipe").innerHTML = STAGES.map(function (st, i) {
+      return (i ? '<span class="arrow">→</span>' : "") + '<span class="stage' + (L.phase === st[0] ? " on" : "") + '">' + st[1] + "</span>";
+    }).join("") + (L.phase === "finished" ? ' <span class="stage on">DONE</span>' : "");
+    document.getElementById("run").textContent = L.run || "–";
+    document.getElementById("gen").textContent = L.generation != null ? L.generation : "–";
+    var chain = lineage(L), best = chain[chain.length - 1];
+    document.getElementById("best").textContent = best ? best._id.split(".").pop() + " · " + pct(best.score) : "–";
+    document.getElementById("sub").textContent = "Gen 1 OU · fixed team · player " + ((L.models || {}).play || "?") + " · coach " + ((L.models || {}).coach || "?") + " · " + L.battles + " battles per version";
+    var prog = L.progress || {}, done = 0; Object.keys(prog).forEach(function (k) { done += prog[k].done; });
+    var p = done ? ' <span class="p">' + done + " battles played this step</span>" : "";
+    var refs = L.reflections || [], last = refs[refs.length - 1], html;
+    if (L.phase === "play") html = "Measuring the starting harness, <b>v1</b>: one generic sentence, no rules, no tools." + p;
+    else if (L.phase === "coach") html = "Generation " + L.generation + ": the coach is reading the best version's losses and wins and deciding what to try…";
+    else if (L.phase === "test" && last) html = "Testing " + last.candidates.length + " ideas from the coach, each on fresh battles, beside the current best." + p;
+    else if (L.phase === "retest" && last) html = "The top idea looked good. Re-testing it head-to-head in case it was luck." + p;
+    else if (L.phase === "decide" && last && last.result) html = last.result.kept ? "Kept: the coach " + describe((last.candidates.filter(function (c) { return c.id === last.result.top; })[0] || {}).change) + "." : "Nothing beat the current best clearly enough, so nothing was kept.";
+    else if (L.phase === "finished") {
+      var kept = chain.slice(1).map(function (v) { return describe(v.change); });
+      html = "Done. The harness went from " + pct(chain[0] && chain[0].score) + " to " + pct(best && best.score) + " on its own." + (kept.length ? " What stuck: it " + kept.join("; then it ") + "." : "");
+    } else html = "Playing." + p;
+    document.getElementById("narrator").innerHTML = html;
+  }
+
+  /* live */
+  var shownTag = null, shownAt = 0, battle = null, sel = 0;
+  function renderMind() {
+    if (!battle || !battle.turns || !battle.turns.length) return;
+    if (sel >= battle.turns.length) sel = 0;
+    document.getElementById("turns").innerHTML = battle.turns.map(function (t, i) {
+      return '<button class="b' + (i === sel ? " sel" : "") + (t.invalid ? " bad" : "") + '" data-i="' + i + '">t' + t.turn + "</button>";
+    }).join("");
+    var t = battle.turns[sel];
+    var blocks = (t.context || "").split("\n\n").map(function (b) {
+      var c = /^Turn \d/.test(b) ? ["state", "the battle, as text"] : /^Tool /.test(b) ? ["tool", "a tool it wrote itself"] : /^Your recent/.test(b) ? ["hist", "its recent moves"] : null;
+      return c ? '<div class="blk ' + c[0] + '"><span class="l">' + c[1] + "</span>" + esc(b) + "</div>" : "";
+    }).join("");
+    document.getElementById("mind").innerHTML = blocks + '<div class="choice' + (t.invalid ? " bad" : "") + '"><b>→ ' + esc(t.action) + "</b><br>" + esc(t.reason || "(no reason given)") + "</div>";
+    document.getElementById("mmeta").textContent = battle.version + " · turn " + t.turn;
+  }
+  document.getElementById("turns").addEventListener("click", function (e) { var b = e.target.closest("button[data-i]"); if (b) { sel = +b.getAttribute("data-i"); renderMind(); } });
+  function showBattle(lb) {
+    battle = lb; shownTag = lb.tag; shownAt = Date.now(); sel = 0;
+    document.getElementById("replay").src = encodeURI(lb.replay);
+    document.getElementById("bmeta").innerHTML = esc(lb.version) + ' <span class="tag ' + (lb.won ? "win" : "loss") + '">' + (lb.won ? "WON" : "LOST") + "</span>";
+    renderMind();
+  }
+  document.getElementById("latest").onclick = function () { if (S.live && S.live.last_battle) showBattle(S.live.last_battle); };
+
+  /* harness */
+  var selV = null, picked = false;
+  function renderHarness(L) {
+    var chain = lineage(L); if (!chain.length) return;
+    var all = (L.versions || []), byId = {}; all.forEach(function (v) { byId[v._id] = v; });
+    var ids = chain.map(function (v) { return v._id; });
+    if (!picked || !byId[selV]) selV = ids[ids.length - 1];
+    document.getElementById("scrub").innerHTML = chain.map(function (v) {
+      return '<button class="b' + (v._id === selV ? " sel" : "") + '" data-v="' + esc(v._id) + '">' + esc(v._id.split(".").pop()) + " · " + pct(v.score) + "</button>";
+    }).join('<span class="arrow">›</span>') + ' <span class="small">(the kept versions; rejected ideas are in the coach log)</span>';
+    var v = byId[selV], par = v.parent ? byId[v.parent] : null;
+    var ch = {}; if (par) {
+      if (v.system_prompt !== par.system_prompt) ch.prompt = 1;
+      if (JSON.stringify(v.rules) !== JSON.stringify(par.rules)) ch.rules = 1;
+      if (JSON.stringify(v.custom_tools || []) !== JSON.stringify(par.custom_tools || [])) ch.tools = 1;
+      if (JSON.stringify(v.context) !== JSON.stringify(par.context)) ch.context = 1;
+    }
+    document.getElementById("why").innerHTML = par ? "The coach " + describe(v.change) + ". Its reason: " + esc(v.change && v.change.rationale) : "The starting point: one generic sentence, no rules, no tools, nothing about Pokémon strategy.";
+    var prules = par ? par.rules : [];
+    function part(key, cls, title, body, extra) { return '<div class="part ' + cls + (ch[key] ? " changed" : "") + (extra || "") + '"><h3>' + title + "</h3>" + body + "</div>"; }
+    var tools = (v.custom_tools || []).map(function (t) { return '<details class="code"><summary>' + esc(t.name) + " — " + esc(t.description) + '</summary><pre class="code">' + esc(t.code) + "</pre></details>"; }).join("");
+    document.getElementById("anatomy").innerHTML =
+      part("prompt", "p-prompt", "Instructions <i>editable</i>", '<div class="txt">' + esc(v.system_prompt) + "</div>") +
+      part("guard", "p-guard", "Guardrails <i>locked</i>", "<ul><li>Answer with one legal action; illegal answers become a random legal move</li><li>Never forfeit or stall</li></ul>") +
+      part("rules", "p-rules", "Learned rules <i>editable</i>", v.rules.length ? "<ul>" + v.rules.map(function (r) { return "<li>" + (prules.indexOf(r) < 0 && par ? '<span class="new">' + esc(r) + "</span>" : esc(r)) + "</li>"; }).join("") + "</ul>" : '<div class="none">none yet</div>') +
+      '<div class="part p-model"><b>Model</b><div class="small">' + esc((L.models || {}).play || "") + '</div><div class="small">fixed all day · never retrained</div></div>' +
+      part("tools", "p-tools", "Tools it wrote <i>code, sandboxed</i>", tools || '<div class="none">none yet</div>') +
+      part("adapter", "p-adapter", "Game adapter <i>fixed</i>", '<div class="small">The only Pokémon code: turns the battle into text and lists the legal moves. Facts only, no strategy.</div>', " fixed") +
+      part("context", "p-context", "Context <i>editable</i>", '<div class="small">sees its last <b>' + ((v.context || {}).history_turns || 0) + "</b> moves</div>") +
+      part("memory", "p-memory", "Memory <i>Atlas</i>", '<div class="small">Lessons from kept changes, recalled by vector search before each coach decision</div>');
+  }
+  document.getElementById("scrub").addEventListener("click", function (e) { var b = e.target.closest("button[data-v]"); if (b) { selV = b.getAttribute("data-v"); picked = true; renderHarness(S.live); } });
+
+  /* evolution */
+  function renderEvolution(L) {
+    var chain = lineage(L), refs = L.reflections || [];
+    var pts = [{ g: 0, s: chain[0] && chain[0].score, id: chain[0] && chain[0]._id }];
+    refs.forEach(function (r) { if (r.result) pts.push({ g: r.generation, s: r.result.kept ? (r.result.retest ? r.result.retest.top_avg : r.result.top_first) : (r.result.retest ? r.result.retest.best_avg : r.result.best_first), kept: r.result.kept }); });
+    var W = 560, H = 250, L0 = 40, R0 = 545, T0 = 14, B0 = 210;
+    function x(i) { return L0 + (pts.length < 2 ? 0 : i * (R0 - L0) / (pts.length - 1)); } function y(v) { return B0 - v * (B0 - T0); }
+    var o = "";
+    [0, .25, .5, .75, 1].forEach(function (p) { o += '<line x1="' + L0 + '" x2="' + R0 + '" y1="' + y(p) + '" y2="' + y(p) + '" stroke="#E9D6BC"/><text x="' + (L0 - 6) + '" y="' + (y(p) + 4) + '" font-size="10" fill="#7D6F62" text-anchor="end">' + p * 100 + "%</text>"; });
+    var path = pts.filter(function (p) { return p.s != null; }).map(function (p, i) { return (i ? "L" : "M") + x(pts.indexOf(p)) + "," + y(p.s); }).join("");
+    o += '<path d="' + path + '" fill="none" stroke="#9A7D4E" stroke-width="2.5"/>';
+    pts.forEach(function (p, i) {
+      if (p.s == null) return;
+      o += '<circle cx="' + x(i) + '" cy="' + y(p.s) + '" r="6" fill="' + (i === 0 ? "#B8A99A" : p.kept ? "#5F8A68" : "#FFF9F0") + '" stroke="' + (p.kept || i === 0 ? "none" : "#B8A99A") + '" stroke-width="2"/>' +
+        '<text x="' + x(i) + '" y="' + (y(p.s) - 11) + '" font-size="11" fill="#4A4139" text-anchor="middle">' + pct(p.s) + "</text>" +
+        '<text x="' + x(i) + '" y="' + (B0 + 18) + '" font-size="10.5" fill="#7D6F62" text-anchor="middle">' + (i === 0 ? "start" : "gen " + p.g) + "</text>";
+    });
+    o += '<text x="' + L0 + '" y="' + (B0 + 36) + '" font-size="10" fill="#7D6F62">● green = a change was kept · hollow = nothing beat the best</text>';
+    document.getElementById("chart").innerHTML = o;
+
+    document.getElementById("gens").innerHTML = refs.slice().reverse().map(function (r) {
+      var res = r.result, top = res && res.top;
+      var cands = r.candidates.map(function (c) {
+        var cls = "cand" + (res && c.id === top ? (res.kept ? " keep" : " top") : "");
+        var val = c.change.kind === "write_tool" ? esc(c.change.value && c.change.value.name) + '<details class="code"><summary>show the code it wrote</summary><pre class="code">' + esc(c.change.value && c.change.value.code) + "</pre></details>" : esc(typeof c.change.value === "string" ? c.change.value : JSON.stringify(c.change.value));
+        return '<div class="' + cls + '"><span class="k">' + esc(c.change.kind) + '</span><span class="s">' + (c.error ? "✕" : pct(c.score)) + '</span><div><div class="v">' + val + '</div><div class="r">' + (c.error ? "rejected before playing: " + esc(c.error) : esc(c.change.rationale)) + "</div></div></div>";
+      }).join("");
+      var verdict = !res ? '<span class="tag wait">testing…</span>' :
+        res.retest ? "Re-test: best " + pct(res.retest.best) + " vs " + esc(top.split(".").pop()) + " " + pct(res.retest.top) + " · averages " + pct(res.retest.best_avg) + " vs " + pct(res.retest.top_avg) + " → " + (res.kept ? '<span class="tag kept">KEPT</span>' : '<span class="tag rb">rejected</span>')
+          : "No candidate beat the fresh best (" + pct(res.best_first) + ") · nothing kept";
+      return '<div class="gen"><div class="h"><span>Generation ' + r.generation + '</span><span class="small">best ' + esc(r.parent.split(".").pop()) + " scored " + pct(res && res.best_first) + " this round · " + r.saw.n_losses + " losses studied</span></div>" +
+        '<div class="cands">' + (cands || '<div class="empty">no usable proposals this round</div>') + '</div><div class="verdict">' + verdict + "</div></div>";
+    }).join("") || '<div class="empty">The coach hasn\'t run yet.</div>';
+  }
+
+  /* ladder */
+  function renderLadder(st) {
+    var lad = (st && st.ladder) || {};
+    var order = ["stt-base", "stt-evolved"];
+    document.getElementById("ladders").innerHTML = order.map(function (name) {
+      var a = lad[name] || { games: 0, wins: 0, families: {} };
+      var fam = Object.keys(a.families).sort().map(function (f) {
+        var x = a.families[f], label = f === "MM" ? "RL agents (MM-)" : f === "BH" ? "rule bots (BH-)" : f;
+        return '<div class="fam"><span>' + label + '</span><span class="bar"><i style="width:' + (x.games ? 100 * x.wins / x.games : 0) + '%"></i></span><span class="mono">' + x.wins + "/" + x.games + "</span></div>";
+      }).join("");
+      return '<div class="lad' + (name === "stt-evolved" ? " evo" : "") + '"><span class="name">' + name + '</span><span class="small">' + (name === "stt-base" ? "the starting harness (v1)" : "the best harness the loop found") + '</span>' +
+        '<span class="big">' + (a.games ? pct(a.wins / a.games) : "–") + '</span><span class="small">' + a.wins + " wins in " + a.games + " ranked games</span>" + (fam || '<div class="empty">no games yet</div>') + "</div>";
+    }).join("");
+  }
+
+  /* atlas */
+  var COLL = [["harness_versions", "every version of the harness and its score"], ["battles", "every battle, every turn, every reason"], ["reflections", "every coach decision and its test"], ["lessons", "learned sentences with Atlas-searchable embeddings"]];
+  function renderAtlas(st, L) {
+    var a = st && st.atlas; if (!a) return;
+    document.getElementById("ameta").textContent = "database " + a.db + " · vector index " + a.index + " (" + a.index_status + ")";
+    document.getElementById("colls").innerHTML = COLL.map(function (c) { return '<div class="coll"><span class="n">' + c[0] + "</span><b>" + ((a.counts || {})[c[0]] || 0) + '</b><span class="d">' + c[1] + "</span></div>"; }).join("");
+    document.getElementById("pipes").textContent = "// ladder results by opponent family\ndb.battles.aggregate(" + JSON.stringify(st.pipelines.ladder_by_family, null, 1).replace(/\n\s*/g, " ") + ")\n\n// win rate of every version in every run\ndb.battles.aggregate(" + JSON.stringify(st.pipelines.run_by_version, null, 1).replace(/\n\s*/g, " ") + ")";
+    document.getElementById("imeta").textContent = "aggregation pipelines, refreshed every minute";
+    var ls = L && L.last_search;
+    if (ls) document.getElementById("search").innerHTML = '<div class="q">' + esc(ls.query) + "</div>" + (ls.hits || []).map(function (h) { return '<div class="hit"><span>' + esc(h.text) + '</span><span class="sv">' + (h.score || 0).toFixed(3) + "</span></div>"; }).join("");
+  }
+  function renderFeed(ev) {
+    if (!ev || !ev.length) return;
+    document.getElementById("feed").innerHTML = ev.slice().reverse().map(function (e) {
+      return '<div class="fe"><span class="t">' + esc(e.t) + '</span><span class="op ' + esc(e.op) + '">' + esc(e.op) + '</span><span class="c">' + esc(e.coll) + '</span><span class="w" title="' + esc(e.what) + '">' + esc(e.what) + "</span></div>";
+    }).join("");
+  }
+
+  function tick() {
+    Promise.all([getJSON("live.json"), getJSON("stats.json"), getJSON("feed.json")]).then(function (r) {
+      if (r[0]) { S.live = r[0]; renderTop(S.live); renderHarness(S.live); renderEvolution(S.live); if (S.live.last_battle && S.live.last_battle.tag !== shownTag && (!shownTag || Date.now() - shownAt > 45000)) showBattle(S.live.last_battle); }
+      if (r[1]) { S.stats = r[1]; renderLadder(S.stats); }
+      renderAtlas(S.stats, S.live);
+      if (r[2]) renderFeed(r[2]);
+    }).finally(function () { setTimeout(tick, 2500); });
+  }
+  tick();
+})();
+</script>
+</body>
+</html>

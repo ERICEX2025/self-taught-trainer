@@ -98,6 +98,7 @@ async def main(a):
         write_live(phase="coach", generation=g, progress={})
         loss_text = " ".join(coach.game_summary(d, 6) for d in docs if not d["won"])[:3000]
         lessons = store.search_lessons(loss_text, k=3) if store.lessons.count_documents({"archived": False}) else []
+        write_live(last_search=store.last_search)
         cands, prompt, raw = await coach.propose(llm, best, docs, tried, lessons, evidence=evidence_for(docs))
         ref = {"run": run, "generation": g, "parent": best["_id"], "at": time.time(),
                "saw": {"harness": {k: best[k] for k in EDITABLE}, "n_battles": len(docs),
