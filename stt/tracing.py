@@ -21,8 +21,12 @@ def client():
     global _lf
     if _lf is None and os.environ.get("LANGFUSE_PUBLIC_KEY") and os.environ.get("LANGFUSE_SECRET_KEY"):
         try:
-            from langfuse import get_client
-            _lf = get_client()
+            from langfuse import Langfuse
+            # A trailing slash in LANGFUSE_BASE_URL makes the SDK post to "//api/public/otel", which a proxy can
+            # answer with 200 while dropping the data. The v4 header makes a v4 server store spans right away.
+            base = (os.environ.get("LANGFUSE_BASE_URL") or os.environ.get("LANGFUSE_HOST") or "https://cloud.langfuse.com").rstrip("/")
+            os.environ["LANGFUSE_BASE_URL"] = base
+            _lf = Langfuse(base_url=base, additional_headers={"x-langfuse-ingestion-version": "4"})
         except Exception:
             _lf = False
     return _lf or None
