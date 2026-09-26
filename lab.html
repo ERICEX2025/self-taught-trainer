@@ -142,10 +142,13 @@ svg text { font-family: "IBM Plex Mono", monospace; }
 .ov-intro { font: 400 30px/1.25 "Instrument Serif", Georgia, serif; max-width: 42ch; text-wrap: balance; margin-top: 18px; }
 .ov-intro b { font-weight: 400; color: var(--tan-deep); }
 .ov { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
-.ov .panel { gap: 12px; }
+.ov .panel { gap: 14px; padding: 22px; }
 .ov .who { font: 600 11.5px "IBM Plex Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .ov .does { font: 400 22px/1.25 "Instrument Serif", Georgia, serif; }
-.ov .num { font: 400 44px/1 "Instrument Serif", Georgia, serif; color: var(--tan-deep); font-variant-numeric: tabular-nums; }
+.ov .num { font: 400 64px/1 "Instrument Serif", Georgia, serif; color: var(--tan-deep); font-variant-numeric: tabular-nums; }
+.ov .cap { font: 12.5px "IBM Plex Mono", monospace; color: var(--muted); margin-top: -4px; }
+.ov .one { margin: 0; font-size: 16px; line-height: 1.45; max-width: 34ch; }
+.top.quiet .pipe, .top.quiet .stat { visibility: hidden; }
 .ov .num small { display: block; margin-top: 6px; font: 13px "IBM Plex Mono", monospace; color: var(--muted); }
 .ov ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14.5px; }
 .ov .honest { font-size: 13px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
@@ -161,7 +164,7 @@ svg text { font-family: "IBM Plex Mono", monospace; }
 </style>
 </head>
 <body>
-<div class="top">
+<div class="top quiet">
   <div class="brand"><h1>Self-Taught Trainer</h1><div id="sub">Gen 1 OU · fixed team · connecting…</div></div>
   <div class="pipe" id="pipe"></div>
   <div class="stat"><span>run</span><select id="runpick" aria-label="Choose a run" style="font:400 22px 'Instrument Serif',Georgia,serif;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:0 6px"></select></div>
@@ -182,43 +185,28 @@ svg text { font-family: "IBM Plex Mono", monospace; }
 </nav>
 
 <div class="pane" data-pane="overview">
-  <p class="ov-intro">An AI plays Pokémon battles. <b>Two other AIs</b> watch it play and make it better: one improves its strategy, one fixes its code. A real benchmark keeps us honest.</p>
+  <p class="ov-intro">An AI plays Pokémon. <b>Two more AIs</b> make it better.</p>
   <div class="ov">
     <section class="panel">
-      <div class="who">1 · The coach improves strategy</div>
-      <div class="does">After each round it reads the lost games, proposes changes to the player's rules and tools, and keeps one only if it wins more.</div>
-      <div class="num">52% → 71% <small>Run 1, in-run win rate vs the training bot · Run 2 reached 80% (from 67%)</small></div>
-      <ul>
-        <li>Learned: a Hyper Beam that knocks out skips the recharge turn in Gen 1</li>
-        <li>Learned: freeze is permanent in Gen 1, so press the advantage</li>
-        <li>Wrote its own tool: a Victreebel endgame warning</li>
-      </ul>
-      <div class="honest">Honest check: re-tested on 60 fresh games, the best versions scored 63–67% vs 57% for the start. Some of the 80% was luck.</div>
-      <button class="b go" data-jump="disc">See what it learned →</button>
+      <div class="who">The coach · strategy</div>
+      <div class="num">52% → 71%</div>
+      <div class="cap">win rate vs the training bot</div>
+      <p class="one">It taught itself Gen 1 facts, like “freeze is permanent.”</p>
+      <button class="b go" data-jump="disc">What it learned →</button>
     </section>
     <section class="panel">
-      <div class="who">2 · The healer fixes code</div>
-      <div class="does">A coding agent (Codex) reads the app's own logs, finds a bug in our code, fixes it on a branch, and must pass tests it can't edit.</div>
-      <div class="num">194 <small>turns the player was misled</small></div>
-      <ul>
-        <li>Found: our code showed the game's "Fight" button (asleep, frozen) as an attack with power 0</li>
-        <li>The player kept trying to "finish off" enemies with it</li>
-        <li>Fixed 8 lines, wrote 3 tests, passed the gate. Nobody on the team had noticed.</li>
-      </ul>
-      <div class="honest">Not yet measured in games; the fix is proven by tests only.</div>
-      <button class="b go" data-jump="healer">Read the healer's report →</button>
+      <div class="who">The healer · code</div>
+      <div class="num">194</div>
+      <div class="cap">turns misled by a bug in our code</div>
+      <p class="one">It read its own logs, found the bug, fixed it, and proved it with tests.</p>
+      <button class="b go" data-jump="healer">The fix →</button>
     </section>
     <section class="panel">
-      <div class="who">3 · The real test</div>
-      <div class="does">We entered the PokéAgent Challenge ladder (NeurIPS 2025), playing ranked Gen 1 games against opponents we never trained on.</div>
-      <div class="num">13% → 14% <small>win rate, start vs evolved</small></div>
-      <ul>
-        <li>Start: 20 wins of 156 games</li>
-        <li>Evolved: 11 wins of 80 games</li>
-        <li>Training bots were too easy; strong opponents (RL agents) are the next step</li>
-      </ul>
-      <div class="honest">Self-improvement against weak bots barely moved the real ladder. That's the most important finding.</div>
-      <button class="b go" data-jump="ladder">See the ladder →</button>
+      <div class="who">The real test · PokéAgent ladder</div>
+      <div class="num">14%</div>
+      <div class="cap">win rate against real opponents</div>
+      <p class="one">Easy training bots didn't carry over. Next: stronger sparring partners.</p>
+      <button class="b go" data-jump="ladder">The ladder →</button>
     </section>
   </div>
 </div>
@@ -324,7 +312,9 @@ svg text { font-family: "IBM Plex Mono", monospace; }
     var b = e.target.closest("button[data-tab]"); if (!b) return;
     document.querySelectorAll(".tabs button").forEach(function (x) { x.setAttribute("aria-selected", x === b); });
     document.querySelectorAll(".pane").forEach(function (p) { p.hidden = p.getAttribute("data-pane") !== b.getAttribute("data-tab"); });
-    document.getElementById("narrator").hidden = ["live", "harness", "evolution"].indexOf(b.getAttribute("data-tab")) < 0;
+    var runTab = ["live", "harness", "evolution"].indexOf(b.getAttribute("data-tab")) >= 0;
+    document.getElementById("narrator").hidden = !runTab;
+    document.querySelector(".top").classList.toggle("quiet", !runTab);
   });
 
   function describe(c) {
