@@ -410,6 +410,7 @@ function Harness({ detail, discoveries }) {
         ))}
         <span className="text-sm text-muted-foreground">kept versions · {tried} other ideas were tested and rejected</span>
       </div>
+      {v.parent && <WhyKept d={(discoveries || []).find((d) => d.version === v._id)} />}
       {!v.parent && <p className="text-muted-foreground">{v.started_from ? <>Starting point: a copy of <b className="text-foreground">{v.started_from}</b>, the best version from an earlier run.</>
           : "Starting point: one generic sentence, no rules, no tools, nothing about Pokémon strategy."}</p>}
       <div className="grid gap-3 md:grid-cols-2">
@@ -453,7 +454,6 @@ function Harness({ detail, discoveries }) {
           </CardContent>
         </Card>
       </div>
-      {v.parent && <WhyKept d={(discoveries || []).find((d) => d.version === v._id)} />}
       <Card>
         <CardHeader><CardTitle>Every idea the coach tried</CardTitle><CardDescription>each row is one B, with its first-round win rate; most did not pass</CardDescription></CardHeader>
         <CardContent>
