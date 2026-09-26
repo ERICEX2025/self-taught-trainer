@@ -250,27 +250,36 @@ function AgentView({ t, cfg }) {
   const c = useMemo(() => parseContext(t?.context), [t])
   if (!t) return null
   const rules = cfg?.rules || []
+  const summary = "flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden"
   return (
-    <div className="grid gap-4">
-      <div className="grid gap-1.5">
-        <Label>Hints from its tools this turn</Label>
-        {c.tools.length ? c.tools.map((tl) => (
-          <div key={tl.name} className="rounded-lg border border-primary/30 bg-primary/5 p-3">
-            <div className="font-mono text-xs text-muted-foreground">{tl.name} · a tool the coach wrote</div>
-            <p className="mt-1 text-sm">{tl.text.join(" ")}</p>
-          </div>
-        )) : <p className="text-sm text-muted-foreground">No tool fired this turn. Tools only speak up when their situation comes up.</p>}
-      </div>
-      <div className="grid gap-1.5">
-        <Label>Rules it was playing with · {rules.length}</Label>
-        {rules.length ? (
-          <ul className="grid list-disc gap-1 pl-4 text-sm text-muted-foreground">{rules.map((r) => <li key={r}>{r}</li>)}</ul>
-        ) : <p className="text-sm text-muted-foreground">None: this is the starting version.</p>}
-      </div>
-      <details>
-        <summary className="cursor-pointer text-sm text-muted-foreground">Exact text it received this turn</summary>
-        <pre className="mt-2 max-h-[260px] overflow-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap">{t.context}</pre>
+    <div className="grid gap-3">
+      <details className="group rounded-lg border p-3">
+        <summary className={summary}>
+          <span>Tool hints this turn · {c.tools.length ? c.tools.map((x) => x.name).join(", ") : "none"}</span>
+          <span className="text-muted-foreground transition-transform group-open:rotate-90">›</span>
+        </summary>
+        <div className="mt-2 grid gap-2">
+          {c.tools.length ? c.tools.map((tl) => (
+            <div key={tl.name} className="rounded-md bg-primary/5 p-2 text-sm">
+              <div className="font-mono text-xs text-muted-foreground">{tl.name} · written by the coach</div>
+              {tl.text.join(" ")}
+            </div>
+          )) : <p className="text-sm text-muted-foreground">No tool fired this turn. Tools only speak up when their situation comes up.</p>}
+        </div>
       </details>
+      <details className="group rounded-lg border p-3">
+        <summary className={summary}>
+          <span>Rules it was playing with · {rules.length}</span>
+          <span className="text-muted-foreground transition-transform group-open:rotate-90">›</span>
+        </summary>
+        {rules.length ? (
+          <ul className="mt-2 grid list-disc gap-1 pl-4 text-sm text-muted-foreground">{rules.map((r) => <li key={r}>{r}</li>)}</ul>
+        ) : <p className="mt-2 text-sm text-muted-foreground">None: this is the starting version.</p>}
+      </details>
+      <div className="grid gap-1.5">
+        <Label>Exact text it received this turn</Label>
+        <pre className="max-h-[260px] overflow-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap">{t.context}</pre>
+      </div>
     </div>
   )
 }
