@@ -91,8 +91,15 @@ async def main(a):
     def versions():
         return [v for v in store.all_versions() if v.get("run") == run]
 
-    best = v1()
-    best.update({"_id": f"{run}.v1", "run": run})
+    from . import evaluate as ev_mod
+    ev_mod.VARIED["on"] = a.varied_teams
+    if a.start:
+        best = dict(store.versions.find_one({"_id": a.start}))
+        best.update({"_id": f"{run}.v1", "run": run, "parent": None, "status": "baseline",
+                     "change": None, "created": time.time(), "started_from": a.start})
+    else:
+        best = v1()
+        best.update({"_id": f"{run}.v1", "run": run})
     BEST["cfg"] = best
     global LADDER_TEXT
     if a.ladder_evidence:
@@ -230,5 +237,7 @@ if __name__ == "__main__":
     ap.add_argument("--concurrency", type=int, default=24)
     ap.add_argument("--coach", choices=["api", "codex"], default="api")
     ap.add_argument("--candidates", type=int, default=4, help="max candidates tested per generation")
+    ap.add_argument("--varied-teams", action="store_true", help="opponents rotate through teams/opponents/*.txt")
+    ap.add_argument("--start", default=None, help="start from an existing version id instead of v1")
     ap.add_argument("--ladder-evidence", action="store_true", help="show the coach recent losses from the PokeAgent ladder")
     asyncio.run(main(ap.parse_args()))

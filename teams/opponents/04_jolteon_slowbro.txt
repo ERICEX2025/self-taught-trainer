@@ -1,0 +1,35 @@
+Jolteon
+- Thunderbolt
+- Thunder Wave
+- Double Kick
+- Pin Missile
+
+Slowbro
+- Amnesia
+- Surf
+- Thunder Wave
+- Rest
+
+Exeggutor
+- Psychic
+- Sleep Powder
+- Stun Spore
+- Explosion
+
+Alakazam
+- Psychic
+- Seismic Toss
+- Thunder Wave
+- Recover
+
+Snorlax
+- Body Slam
+- Reflect
+- Rest
+- Ice Beam
+
+Tauros
+- Body Slam
+- Hyper Beam
+- Blizzard
+- Earthquake

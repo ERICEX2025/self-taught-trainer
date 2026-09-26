@@ -1,0 +1,35 @@
+Cloyster
+- Blizzard
+- Clamp
+- Explosion
+- Rest
+
+Golem
+- Earthquake
+- Rock Slide
+- Body Slam
+- Explosion
+
+Zapdos
+- Thunderbolt
+- Drill Peck
+- Thunder Wave
+- Agility
+
+Chansey
+- Ice Beam
+- Thunderbolt
+- Thunder Wave
+- Soft-Boiled
+
+Starmie
+- Psychic
+- Blizzard
+- Thunder Wave
+- Recover
+
+Snorlax
+- Body Slam
+- Hyper Beam
+- Earthquake
+- Self-Destruct

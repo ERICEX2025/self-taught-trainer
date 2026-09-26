@@ -1,0 +1,35 @@
+Gengar
+- Hypnosis
+- Thunderbolt
+- Night Shade
+- Explosion
+
+Lapras
+- Blizzard
+- Thunderbolt
+- Body Slam
+- Confuse Ray
+
+Alakazam
+- Psychic
+- Seismic Toss
+- Thunder Wave
+- Recover
+
+Chansey
+- Ice Beam
+- Thunderbolt
+- Thunder Wave
+- Soft-Boiled
+
+Snorlax
+- Body Slam
+- Reflect
+- Rest
+- Ice Beam
+
+Tauros
+- Body Slam
+- Hyper Beam
+- Blizzard
+- Earthquake

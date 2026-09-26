@@ -5,11 +5,28 @@ from pathlib import Path
 
 from poke_env import AccountConfiguration, LocalhostServerConfiguration
 from poke_env.player import MaxBasePowerPlayer, RandomPlayer, SimpleHeuristicsPlayer
+from poke_env.teambuilder import Teambuilder
 
 from .harness import HarnessPlayer
 
 FORMAT = "gen1ou"
 TEAM = Path(__file__).resolve().parent.parent.joinpath("teams", "gen1ou.txt").read_text()
+OPP_TEAMS = [p.read_text() for p in sorted(Path(__file__).resolve().parent.parent.joinpath("teams", "opponents").glob("*.txt"))]
+VARIED = {"on": False}  # set by the loop: opponents rotate through OPP_TEAMS instead of mirroring our team
+
+
+class RotatingTeams(Teambuilder):
+    """A different real Gen 1 OU team for each battle, cycling in order so every version sees the same mix."""
+    def __init__(self, teams):
+        self.teams = [self.join_team(self.parse_showdown_team(t)) for t in teams]
+        self.i = 0
+
+    def yield_team(self):
+        t = self.teams[self.i % len(self.teams)]
+        self.i += 1
+        return t
+
+
 OPPONENTS = {"random": RandomPlayer, "maxpower": MaxBasePowerPlayer, "heuristic": SimpleHeuristicsPlayer}
 
 
@@ -28,7 +45,8 @@ async def evaluate(cfg: dict, llm, n: int, opponent: str = "heuristic", tools=No
                             account_configuration=AccountConfiguration(_name("self"), None),
                             max_concurrent_battles=concurrency)
     else:
-        opp = OPPONENTS[opponent](battle_format=FORMAT, team=TEAM, max_concurrent_battles=concurrency,
+        opp_team = RotatingTeams(OPP_TEAMS) if VARIED["on"] and OPP_TEAMS else TEAM
+        opp = OPPONENTS[opponent](battle_format=FORMAT, team=opp_team, max_concurrent_battles=concurrency,
                                   account_configuration=AccountConfiguration(_name("opp"), None),
                                   server_configuration=LocalhostServerConfiguration)
     await me.battle_against(opp, n_battles=n)

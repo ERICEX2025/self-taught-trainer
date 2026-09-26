@@ -1,0 +1,35 @@
+Starmie
+- Psychic
+- Thunderbolt
+- Thunder Wave
+- Recover
+
+Zapdos
+- Thunderbolt
+- Drill Peck
+- Thunder Wave
+- Agility
+
+Exeggutor
+- Psychic
+- Sleep Powder
+- Stun Spore
+- Explosion
+
+Chansey
+- Ice Beam
+- Thunderbolt
+- Thunder Wave
+- Soft-Boiled
+
+Snorlax
+- Body Slam
+- Hyper Beam
+- Earthquake
+- Self-Destruct
+
+Tauros
+- Body Slam
+- Hyper Beam
+- Blizzard
+- Earthquake
