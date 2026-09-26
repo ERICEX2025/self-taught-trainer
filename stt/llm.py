@@ -8,7 +8,12 @@ from openai import AsyncOpenAI
 
 class LLM:
     def __init__(self, play_model: str | None = None, coach_model: str | None = None, concurrency: int = 8):
-        self.client = AsyncOpenAI()
+        # LLM_PROVIDER=openrouter sends the same models through OpenRouter (credits from the hackathon).
+        self.provider = os.environ.get("LLM_PROVIDER", "openai")
+        if self.provider == "openrouter":
+            self.client = AsyncOpenAI(base_url="https://openrouter.ai/api/v1", api_key=os.environ["OPENROUTER_API_KEY"])
+        else:
+            self.client = AsyncOpenAI()
         self.play_model = play_model or os.environ.get("PLAY_MODEL", "gpt-5.4-mini")
         self.coach_model = coach_model or os.environ.get("COACH_MODEL", "gpt-5.4")
         self.sem = asyncio.Semaphore(concurrency)
@@ -26,10 +31,15 @@ class LLM:
                     self.calls += 1
                     extra = {}
                     if model.startswith(("gpt-5", "o")):
-                        extra["reasoning_effort"] = self.reasoning if model == self.play_model else "medium"
+                        effort = self.reasoning if model == self.play_model else "medium"
+                        if self.provider == "openrouter":
+                            extra["extra_body"] = {"reasoning": {"effort": effort}}
+                        else:
+                            extra["reasoning_effort"] = effort
                         max_tokens = max(max_tokens, 2000)  # thinking tokens count toward the limit
+                    name = f"openai/{model}" if self.provider == "openrouter" and "/" not in model else model
                     r = await self.client.chat.completions.create(
-                        model=model, max_completion_tokens=max_tokens, **extra,
+                        model=name, max_completion_tokens=max_tokens, **extra,
                         messages=[{"role": "system", "content": system}, {"role": "user", "content": user}])
                     self.seconds += time.perf_counter() - t0
                     return r.choices[0].message.content or ""
