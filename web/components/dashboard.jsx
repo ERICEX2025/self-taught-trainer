@@ -250,28 +250,34 @@ function AgentView({ t, cfg }) {
   const c = useMemo(() => parseContext(t?.context), [t])
   if (!t) return null
   const rules = cfg?.rules || []
-  const label = [c.tools.length ? `tool hint: ${c.tools.map((x) => x.name).join(", ")}` : "no tool hint", `${rules.length} rules`].join(" · ")
+  const code = Object.fromEntries((cfg?.custom_tools || []).map((x) => [x.name, x]))
   return (
-    <details className="group rounded-lg border p-3">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
-        <span>What the coach gave it · <span className="font-normal text-muted-foreground">{label}</span></span>
-        <span className="text-muted-foreground transition-transform group-open:rotate-90">›</span>
-      </summary>
-      <div className="mt-3 grid gap-3">
-        {c.tools.map((tl) => (
-          <div key={tl.name} className="rounded-md bg-primary/5 p-2 text-sm">
-            <div className="font-mono text-xs text-muted-foreground">tool {tl.name} · fired this turn</div>
-            {tl.text.join(" ")}
+    <div className="grid gap-3">
+      {c.tools.length ? c.tools.map((tl) => (
+        <div key={tl.name} className="grid gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+          <div className="text-xs text-muted-foreground">
+            Tool <span className="font-mono font-semibold text-foreground">{tl.name}</span> fired and added this to its prompt:
           </div>
-        ))}
-        {rules.length ? (
-          <div className="grid gap-1">
-            <Label>Rules</Label>
-            <ul className="grid list-disc gap-1 pl-4 text-sm text-muted-foreground">{rules.map((r) => <li key={r}>{r}</li>)}</ul>
-          </div>
-        ) : <p className="text-sm text-muted-foreground">No rules: this is the starting version.</p>}
-      </div>
-    </details>
+          <p className="text-sm font-medium">“{tl.text.join(" ")}”</p>
+          {code[tl.name] && (
+            <details className="text-xs">
+              <summary className="cursor-pointer text-muted-foreground">What this tool is · {code[tl.name].description}</summary>
+              <pre className="mt-2 max-h-56 overflow-auto rounded-md bg-background p-2 font-mono">{code[tl.name].code}</pre>
+            </details>
+          )}
+        </div>
+      )) : (
+        <p className="rounded-lg border p-3 text-sm text-muted-foreground">No tool fired this turn. The coach&apos;s tools run every turn but only speak up when their situation comes up.</p>
+      )}
+      <details className="group rounded-lg border p-3">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
+          <span>Rules it was playing with · {rules.length}</span>
+          <span className="text-muted-foreground transition-transform group-open:rotate-90">›</span>
+        </summary>
+        {rules.length ? <ul className="mt-2 grid list-disc gap-1 pl-4 text-sm text-muted-foreground">{rules.map((r) => <li key={r}>{r}</li>)}</ul>
+          : <p className="mt-2 text-sm text-muted-foreground">No rules: this is the starting version.</p>}
+      </details>
+    </div>
   )
 }
 
@@ -285,7 +291,7 @@ function Live({ battle, versions }) {
   const rows = useRef({})
   const t = turns[sel ?? Math.max(0, turns.length - 1)]
   const cfg = (versions || []).find((v) => v._id === battle?.version)
-  const hinted = useMemo(() => new Set(turns.filter((x) => /\nTool \S+ \(written by you\):/.test("\n" + (x.context || ""))).map((x) => x.turn)), [turns])
+  const hinted = useMemo(() => new Map(turns.map((x) => [x.turn, [...("\n" + (x.context || "")).matchAll(/\nTool (\S+) \(written by you\):/g)].map((m) => m[1])]).filter(([, n]) => n.length)), [turns])
 
   // Keep the reasoning panel in step with the Showdown viewer: when the viewer reaches turn N,
   // select the player's decision for turn N. (The replay is served from our origin, so we can read it.)
@@ -351,7 +357,7 @@ function Live({ battle, versions }) {
                     <span>
                       <b className="font-medium">{(x.action || "").replace(/^(move|switch):/, "")}</b>
                       <span className="text-muted-foreground"> · {x.me} {x.me_hp}% vs {x.opp} {x.opp_hp}%</span>
-                      {hinted.has(x.turn) && <Badge variant="outline" className="ml-2">tool hint</Badge>}
+                      {hinted.has(x.turn) && <Badge variant="outline" className="ml-2 font-mono">{hinted.get(x.turn).join(", ")}</Badge>}
                     </span>
                   </button>
                 ))}
@@ -362,7 +368,7 @@ function Live({ battle, versions }) {
         <Card>
           <CardHeader>
             <CardTitle>Why it chose · turn {t?.turn}</CardTitle>
-            <CardDescription>Its reason, and what the coach gave it. Follows the viewer as it plays.</CardDescription>
+            <CardDescription>Its reason, and the hint a coach-written tool gave it. Follows the viewer as it plays.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             <p className="text-lg">“{t?.reason}”</p>
