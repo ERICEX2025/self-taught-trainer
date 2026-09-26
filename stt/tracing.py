@@ -2,8 +2,17 @@
 player's reason + move out), plus one trace per coach decision. Sessions = runs.
 
 Does nothing unless LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY are set, and never raises into the loop.
+Errors go to Sentry/GlitchTip when SENTRY_DSN is set (poke-env logs player crashes at ERROR level, which Sentry
+picks up). The healer (stt/heal.py) reads both back through MCP.
 """
 import os
+
+if os.environ.get("SENTRY_DSN"):
+    try:
+        import sentry_sdk
+        sentry_sdk.init(dsn=os.environ["SENTRY_DSN"], traces_sample_rate=0, environment=os.environ.get("STT_ENV", "hackathon"))
+    except Exception:
+        pass
 
 _lf = None
 

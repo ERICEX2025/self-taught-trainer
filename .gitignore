@@ -12,3 +12,4 @@ report*.json
 ladder-*.json
 stats.json
 stats.json.tmp
+heal-*.log
