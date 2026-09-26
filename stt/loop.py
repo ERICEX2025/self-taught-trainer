@@ -105,13 +105,24 @@ async def main(a):
         loss_text = " ".join(coach.game_summary(d, 6) for d in docs if not d["won"])[:3000]
         lessons = store.search_lessons(loss_text, k=3) if store.lessons.count_documents({"archived": False}) else []
         write_live(last_search=store.last_search)
-        cands, prompt, raw = await coach.propose(llm, best, docs, tried, lessons, evidence=evidence_for(docs))
+        ev = evidence_for(docs)
+        cands, scripts = [], []
+        if a.coach == "codex":
+            from . import coach_codex
+            cands, prompt, raw, scripts = await coach_codex.propose(best, docs, tried, lessons, evidence=ev)
+            print(f"  codex coach: {len(cands)} candidates, {len(scripts)} analysis scripts", flush=True)
+            if not cands:
+                print("  codex coach gave nothing usable; falling back to the API coach", flush=True)
+        if not cands:
+            cands, prompt, raw = await coach.propose(llm, best, docs, tried, lessons, evidence=ev)
         ref = {"run": run, "generation": g, "parent": best["_id"], "at": time.time(),
                "saw": {"harness": {k: best[k] for k in EDITABLE}, "n_battles": len(docs),
                        "n_losses": sum(not d["won"] for d in docs), "tried": list(tried),
                        "lessons": [{"text": h["text"], "score": h.get("score")} for h in lessons],
                        "prompt": prompt},
                "raw_reply": raw[-4000:] if not cands else None,
+               "coach": a.coach if scripts or a.coach == "api" else "api (fallback)",
+               "analysis_scripts": scripts,
                "candidates": [], "result": None}
         versions_to_test = []
         for c in cands:
@@ -201,4 +212,5 @@ if __name__ == "__main__":
     ap.add_argument("--opponent", default="heuristic")
     ap.add_argument("--margin", type=float, default=0.05)
     ap.add_argument("--concurrency", type=int, default=24)
+    ap.add_argument("--coach", choices=["api", "codex"], default="api")
     asyncio.run(main(ap.parse_args()))
