@@ -253,6 +253,10 @@ function AgentView({ t, cfg }) {
   const code = Object.fromEntries((cfg?.custom_tools || []).map((x) => [x.name, x]))
   return (
     <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 break-words">
+      <div className="grid gap-1.5">
+        <Label>What it sees · the game state it was given</Label>
+        <pre className="max-h-[260px] overflow-auto rounded-md bg-muted p-3 font-mono text-xs whitespace-pre-wrap">{t.context.split(/\n\nTool \S+ \(written by you\):/)[0]}</pre>
+      </div>
       {c.tools.length ? c.tools.map((tl) => (
         <div key={tl.name} className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
           <div className="text-xs text-muted-foreground">
