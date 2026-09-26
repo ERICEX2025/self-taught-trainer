@@ -419,7 +419,6 @@ function Harness({ detail }) {
   const tried = (detail.versions || []).length - kept.length
   return (
     <div className="grid gap-4">
-      <KeepRule />
       <div className="flex flex-wrap items-center gap-2">
         {kept.map((x, i) => (
           <span key={x._id} className="flex items-center gap-2">
